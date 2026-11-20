@@ -51,6 +51,22 @@ TypeScript run directly by Node 22 (`--experimental-strip-types`). No runtime de
 | Thu 26 | Thanksgiving: a light day. Docs, and the CONTRIBUTING notes for posting claims. |
 | Fri 27 | Commit-reveal if there's time. Tag v0.1.0. Post on the blyg, in #psychohistory and on blygger-spec#10. |
 
+## Composer (the headline, decided 2026-11-20)
+
+A fenced JSON block is a format for developers. The job for everyone else: turn a hunch into a forecast a stranger can check, without knowing a format exists. So the week's headline is a **static web composer that stores nothing**: it publishes and pins claims into the user's own blyg through Studio's OAuth, and reads anyone's track record from public files. Delete the page and every claim is still on the protocol.
+
+Checked against caseyjr.org/blyg (Studio 0.62), without registering anything:
+
+- Discovery: `{mount}/studio/auth/.well-known/openid-configuration`. Issuer `{mount}/studio/auth`; registration at `{mount}/studio/auth/oauth2/register`.
+- `token_endpoint_auth_methods_supported` includes `none`, and PKCE `S256` is supported: a browser client with no secret is allowed.
+- CORS answers `*` on the registration and token endpoints and on `{mount}/api` (with `Authorization`): a page on another origin can do the whole flow.
+- REST resource `{mount}/api` (must be requested explicitly as `resource`); scopes `owner:draft` + `owner:publish` cover `createItem`, `updateItem`, `publishItem` and `pinItem`.
+- Still to prove end to end: dynamic registration of a public client, the consent click, and a real publish + pin. Fallback: a manual token from More → Client access, pasted in.
+
+Screens (mockup on the design canvas): Connect → Compose → Preview, publish and pin → Resolve → anyone's public score. The form asks questions instead of naming fields: *What do you think will happen? How sure are you? By when? How would a stranger check it?* (source, condition, fallback), with a live checkability list. Pinning is automatic and never named as a step.
+
+Upstream ask for Studio (an issue, once the composer works): render `claim` blocks as cards on public pages, as 0.62 does for math, and fold a composer into Studio itself.
+
 ## Studio extension (stretch goal)
 
 Findings from blygger-studio `docs/extensions.md`, `docs/extension-vendoring.md` and `vgururao/newnature/mods/book-dashboard`:
