@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/miguelito4/blyg-claims/schema/claim.schema.json",
+  "title": "Blygger claim block",
+  "description": "The JSON inside a fenced `claim` block in a blyg item's content_md. A `json` or unlabeled fence also counts when its object has both `probability` and `resolves_by`.",
+  "type": "object",
+  "required": ["probability", "resolves_by"],
+  "properties": {
+    "claim": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The statement being forecast, in one sentence. Recommended."
+    },
+    "probability": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1,
+      "description": "The author's probability that the claim resolves true."
+    },
+    "resolves_by": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "The last day (ISO date, UTC) on which the claim can resolve."
+    },
+    "criteria": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How the outcome will be decided, specific enough for someone else to apply. Recommended."
+    },
+    "provenance": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Where the claim comes from: a URL or a short note."
+    },
+    "discussion": {
+      "type": "string",
+      "format": "uri",
+      "description": "Where the claim is being argued."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Commit-reveal: sha256 of salt and the hidden claim, revealed in a later version."
+    }
+  },
+  "additionalProperties": true
+}
