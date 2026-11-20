@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseContent } from '../extension/ui/core/parse.ts';
 
-const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/caseyjr/${name}.json`, import.meta.url), 'utf8'));
+// Pins captured from caseyjr.org/blyg: items/{id}/v{n}.json.
+const fixture = (name: string) => {
+  const [id, v] = name.split('.');
+  return JSON.parse(readFileSync(new URL(`./fixtures/live/caseyjr/items/${id}/${v}.json`, import.meta.url), 'utf8'));
+};
 const errors = (r: ReturnType<typeof parseContent>) => r.issues.filter((i) => i.level === 'error');
 const warnings = (r: ReturnType<typeof parseContent>) => r.issues.filter((i) => i.level === 'warning');
 
