@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/miguelito4/blyg-claims/schema/resolution.schema.json",
+  "title": "Blygger resolution block",
+  "description": "The JSON inside a fenced `resolution` block, added in a later version of the claim's item (or in another item that responds to it).",
+  "type": "object",
+  "required": ["outcome"],
+  "properties": {
+    "outcome": {
+      "description": "true or false; \"void\" when the criteria could not be applied.",
+      "oneOf": [{ "type": "boolean" }, { "const": "void" }]
+    },
+    "resolved_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "The date the outcome became known. Defaults to the version's date."
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "URLs or citations supporting the outcome. Recommended."
+    },
+    "note": { "type": "string" },
+    "reveal": {
+      "type": "object",
+      "description": "Commit-reveal: the salt and the claim text whose sha256 matches the claim's `commit`.",
+      "required": ["salt", "text"],
+      "properties": { "salt": { "type": "string" }, "text": { "type": "string" } }
+    }
+  },
+  "additionalProperties": true
+}
