@@ -8,28 +8,33 @@ A scorer anyone can run against any blyg, proven on caseyjr.org/blyg's live clai
 
 ## Design decisions to settle on day one
 
-1. **Fence names.** Use `claim` and `resolution`. Also accept a ```` ```json ```` block that has both `probability` and `resolves_by`, so the claims already live on caseyjr.org/blyg parse without being edited.
-2. **Claim fields.** Required: `probability` (a number strictly between 0 and 1) and `resolves_by` (an ISO date). Recommended: `criteria` (a string). Optional: `provenance` (a URL or a string), `tags`, and `commit` (stretch: `sha256:` of salt + text).
+1. **Fence names.** New claims use `claim` and `resolution`. A block in a `json` or unlabeled fence also counts if its JSON has both `probability` and `resolves_by`: the two live claims on caseyjr.org/blyg use exactly those fences, and they parse unedited.
+2. **Claim fields.** Required: `probability` (a number strictly between 0 and 1) and `resolves_by` (an ISO date). Recommended: `claim` (the statement) and `criteria`. Optional: `provenance` (a URL or a string), `discussion` (a URL), `tags`, and `commit` (stretch: `sha256:` of salt + text). Later: an optional machine-checkable `check` (series, threshold, fallback).
 3. **Resolution fields.** Required: `outcome` (`true`, `false` or `"void"`). Recommended: `evidence` (URLs). Optional: `resolved_at` and `note`.
 4. **When a claim was made.** The `at` of the first changelog entry whose version carries the claim block. That date is *verified* if that version is pinned and its pin's `content_hash` matches. Otherwise it is *asserted*, and the claim is scored but flagged.
 5. **Statuses.** `open`, `due` (≤30 days), `overdue`, `resolved`, `void`, `withdrawn-open`, `withdrawn-resolved`.
 6. **Scoring.** Brier and log score over resolved, non-void claims. Calibration in 10 buckets, each with its count. Overdue claims are reported, never scored silently: show the score with them counted as misses and without them.
-7. **Revisions.** Score the earliest verifiable `probability`. List any later changes.
+7. **Revisions.** Compare the claim block only: a version revises the claim when `claim`, `probability`, `resolves_by` or `criteria` changes. Edits to prose, links or transclusions don't count (12cq260v… v2 fixed a transclusion and left the block alone). Score the earliest verifiable block and list later changes.
+8. **The block is the source of truth.** Prose that restates a number ("Probability: 0.85") is ignored, but a mismatch with the block is reported as a warning.
+9. **Claims can be threads.** `content_md` is read the same way for both kinds.
 
 ## Repo layout
 
 ```
 schema/claim.schema.json
 schema/resolution.schema.json
-src/fetch.ts      blyg.json → items/index.json → items/{id}.json → pins, with an on-disk cache
-src/parse.ts      content_md → claim / resolution blocks
-src/claims.ts     item history → Claim records with status and dating
-src/score.ts      Brier, log, calibration
-src/report.ts     JSON → a static HTML page (no web fonts, inline SVG chart)
-src/cli.ts        blyg-claims score <url...> [--out dir] [--json]
-test/fixtures/    item documents captured from real blygs, plus synthetic edge cases
-extension/ui/     a browser-only Studio extension (stretch goal)
+extension/ui/core/   pure, dependency-free TypeScript shared by the CLI and the extension
+  parse.ts           content_md → claim / resolution blocks
+  claims.ts          item history → Claim records with status, dating and revisions
+  score.ts           Brier, log, calibration
+extension/ui/        the browser-only Studio extension (stretch goal), vendorable as-is
+src/fetch.ts         blyg.json → items/index.json → items/{id}.json → pins, with an on-disk cache
+src/report.ts        JSON → a static HTML page (no web fonts, inline SVG chart)
+src/cli.ts           blyg-claims score <url...> [--out dir] [--json]
+test/                node --test suites and fixtures (outside extension/, as vendoring requires)
 ```
+
+The core lives under `extension/ui/core/` because a vendored extension may import only files in its own `ui/` directory. The CLI imports the core from there, so one implementation serves both.
 
 TypeScript run directly by Node 22 (`--experimental-strip-types`). No runtime dependencies. Tests use `node --test`.
 
@@ -48,10 +53,24 @@ TypeScript run directly by Node 22 (`--experimental-strip-types`). No runtime de
 
 ## Studio extension (stretch goal)
 
-- Vendored extensions are **browser-only** and need a **source build** of Studio (`npm run ext:add`, then `npm run build`). caseyjr-blyg is a Worker-archive install, so it can't vendor anything as it stands. Develop against a local source clone with `wrangler dev`, and decide later whether the live node moves to a source build.
-- Slots to use: `entryByline` (a badge on items that carry a claim: p, due date, status), `entryActions` → `openSheet` (the claim card), and possibly `draftCounter` (check the claim block while writing).
-- Day-one check: can an extension add a version to an existing item through `client` (resolving a claim), or only open a new draft? Read `src/ui/extension-api.ts` and Venkat's `vgururao/newnature` mod before writing anything.
+Findings from blygger-studio `docs/extensions.md`, `docs/extension-vendoring.md` and `vgururao/newnature/mods/book-dashboard`:
+
+- **Resolving from Studio works.** An extension's UI gets the SDK client with the owner's session. book-dashboard edits existing items with `patch(id, contentMd, expectedRevision)` and then `publish(id, note, expectedRevision)`. Resolve = append the `resolution` block, publish with the note "Resolved YES/NO/void". Publish sends the whole working copy, so v0.1 refuses to resolve an item with an unpublished draft.
+- **Browser-only.** A vendored extension has no server half: no routes and no server-side AI. Cross-blyg scoring and the public report stay in the CLI.
+- **Layout.** Only `.ts`, `.tsx` and `.css` under `ui/`; imports only React, `src/ui/extension-api.ts`, `sdk/dist/browser.js` and its own files. Tests and `package.json` stay outside the extension path.
+- **Source build.** Vendoring needs a Studio source tree at the live version (`npm run ext:add`, then `npm run build`). caseyjr-blyg is a Worker-archive install, so develop against a local source clone with `wrangler dev` and decide later whether the live node moves.
+- **No stability promise.** The extension API has no version. Pin to a Studio release.
+
+Scope, in order:
+
+1. **Byline badge** (`entryByline`): p, due date, status.
+2. **Claim card** (`entryActions` → `openSheet`), with **Resolve**.
+3. **+CLAIM** (`draftCounter`): a form that copies a valid `claim` block to the clipboard, as book-dashboard's +REF does (a slot can't insert at the cursor).
+4. **Locked claim block** (`editorRegions`): once published, the block is held out of the full editor's text box and read-only when shown.
+5. **Claims page** (`page`, menu zone `hidden`): open, due and overdue claims, and the owner's calibration.
+
+To publish: give operators the repo, the full commit, the path (`extension`) and the tree hash for one `ext:add` line.
 
 ## Commit habits
 
-Small commits, straight to `main`, each one working. One idea per commit: a schema, a parser case, a test, a doc section. No code is written before kickoff; this file and the README are the only things committed before then.
+Small commits, straight to `main`, each one working. One idea per commit: a schema, a parser case, a test, a doc section. Nothing but the README and this plan was committed before kickoff.
