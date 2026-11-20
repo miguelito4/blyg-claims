@@ -34,7 +34,7 @@ test('open: no manifest anywhere is an error naming what was tried', async () =>
 test('index, item and pins', async () => {
   const r = await BlygReader.open(CASEYJR, { fetch: fixtureFetch(CASEYJR, caseyjrDir) });
   const index = await r.index();
-  assert.equal(index.length, 92);
+  assert.equal(index.length, 93);
   const item = await r.item(OW);
   assert.equal(item.version, 2);
   assert.equal(item.kind, 'thread');
@@ -68,7 +68,7 @@ test('429 with Retry-After is retried, then succeeds', async () => {
     return inner(url, init);
   };
   const r = await BlygReader.open(CASEYJR, { fetch: f, backoff: 0 });
-  assert.equal((await r.index()).length, 92);
+  assert.equal((await r.index()).length, 93);
   assert.equal(refused, 3);
 });
 
