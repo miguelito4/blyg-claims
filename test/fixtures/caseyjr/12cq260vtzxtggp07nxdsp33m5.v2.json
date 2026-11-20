@@ -1,0 +1,10 @@
+{
+  "blyg": "0.4",
+  "id": "12cq260vtzxtggp07nxdsp33m5",
+  "version": 2,
+  "at": "2026-10-13T15:06:36Z",
+  "note": "Foolishly added the wrong link up top. Corrected to show the prediction.",
+  "pinned": true,
+  "origin": "https://caseyjr.org/blyg/",
+  "content_md": "![[18q6e6ge6yrq267pxpc8jcymwq]]\n\nClaim: by June 19, 2027, an open-weights model will match the best closed model of December 2025.\n\nThis formalizes a line from my December 19, 2025 post: that open models would deliver \"good-enough\" performance for general use within 18 months. That post gave no probability. I'm setting one now, ten months in, so read this as an October 2026 forecast with December 2025 provenance.\n\nProbability: 0.85\n\nResolves YES if, on or before 2027-06-19, a model with downloadable weights and a license that allows commercial use scores at or above the highest-rated closed model released on or before 2025-12-19, on the LMArena text leaderboard. If LMArena is gone or no longer lists both, I'll use the Artificial Analysis Intelligence Index and say so. Resolves NO otherwise.\n\nThe resolution will be a new version of this item, with evidence. Any revision before then will say what changed and why.\n\nThis is a first live test of the prediction-journal shape we've been discussing in blygger-spec#10: https://github.com/blygger/blygger-spec/issues/10\n\n```json\n{\n  \"claim\": \"An open-weights model matches the best closed model of 2025-12-19 by 2027-06-19\",\n  \"probability\": 0.85,\n  \"resolves_by\": \"2027-06-19\",\n  \"criteria\": \"Open weights + commercial-use license; LMArena text score >= top closed model released on or before 2025-12-19; fallback Artificial Analysis Intelligence Index\",\n  \"provenance\": \"https://bits.caseyjr.org/will-open-source-pop-the-ai-bubble/\",\n  \"discussion\": \"https://github.com/blygger/blygger-spec/issues/10\"\n}\n```"
+}
