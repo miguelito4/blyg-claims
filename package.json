@@ -1,0 +1,13 @@
+{
+  "name": "blyg-claims",
+  "version": "0.0.0",
+  "description": "Prediction journals for Blygger: claims, resolutions, calibration",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "bin": { "blyg-claims": "src/cli.ts" },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.ts'"
+  }
+}
