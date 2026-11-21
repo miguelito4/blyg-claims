@@ -12,7 +12,7 @@ const DIRECTORY = 'https://blygger.com/blygs.json';
 const KNOWN = ['https://caseyjr.org/blyg/', 'https://venkateshrao.com/blyg/', 'https://blyg.aneeshsathe.com/'];
 const OUT = process.argv[2] ?? '_site/claims.json';
 const MAX = 30;
-const PER_BLYG_MS = 25_000;
+const PER_BLYG_MS = 100_000;
 
 const within = <T>(ms: number, p: Promise<T>): Promise<T> =>
   Promise.race([p, new Promise<T>((_, no) => setTimeout(() => no(new Error(`gave up after ${ms / 1000}s`)), ms).unref())]);
