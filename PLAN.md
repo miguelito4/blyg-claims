@@ -12,7 +12,7 @@ A scorer anyone can run against any blyg, proven on caseyjr.org/blyg's live clai
 2. **Claim fields.** Required: `probability` (a number strictly between 0 and 1) and `resolves_by` (an ISO date). Recommended: `claim` (the statement) and `criteria`. Optional: `provenance` (a URL or a string), `discussion` (a URL), `tags`, and `commit` (stretch: `sha256:` of salt + text). Later: an optional machine-checkable `check` (series, threshold, fallback).
 3. **Resolution fields.** Required: `outcome` (`true`, `false` or `"void"`). Recommended: `evidence` (URLs). Optional: `resolved_at` and `note`.
 4. **When a claim was made.** The `at` of the first changelog entry whose version carries the claim block. That date is *verified* if that version is pinned and its pin's `content_hash` matches. Otherwise it is *asserted*, and the claim is scored but flagged.
-5. **Statuses.** `open`, `due` (≤30 days), `overdue`, `resolved`, `void`, `withdrawn-open`, `withdrawn-resolved`.
+5. **Statuses.** `open`, `due` (≤30 days), `overdue`, `proposed`, `settled`, `disputed`, `void`, `withdrawn-open`, `withdrawn-resolved` (see Self-grading).
 6. **Scoring.** Brier and log score over resolved, non-void claims. Calibration in 10 buckets, each with its count. Overdue claims are reported, never scored silently: show the score with them counted as misses and without them.
 7. **Revisions.** Compare the claim block only: a version revises the claim when `claim`, `probability`, `resolves_by` or `criteria` changes. Edits to prose, links or transclusions don't count (12cq260v… v2 fixed a transclusion and left the block alone). Score the earliest verifiable block and list later changes.
 8. **The block is the source of truth.** Prose that restates a number ("Probability: 0.85") is ignored, but a mismatch with the block is reported as a warning.
@@ -66,6 +66,18 @@ Checked against caseyjr.org/blyg (Studio 0.62), without registering anything:
 Screens (mockup on the design canvas): Connect → Compose → Preview, publish and pin → Resolve → anyone's public score. The form asks questions instead of naming fields: *What do you think will happen? How sure are you? By when? How would a stranger check it?* (source, condition, fallback), with a live checkability list. Pinning is automatic and never named as a step.
 
 Upstream ask for Studio (an issue, once the composer works): render `claim` blocks as cards on public pages, as 0.62 does for math, and fold a composer into Studio itself.
+
+## Self-grading (decided 2026-11-21)
+
+An author who resolves their own claims can grade themselves generously, so an author's say-so never settles a claim alone:
+
+- **`resolvers`** on the claim: `"anyone"` (the default when absent, which covers the three live claims), a list of blyg URLs, or `"data"`.
+- **Anyone:** the author's resolution is a *proposal*. For `dispute_days` (default 7) any blyg can publish a confirmation or a dispute, as a response item on its own blyg that links the claim and is pinned there. No dispute → **settled**. A dispute → **disputed**, shown with both sides.
+- **Named:** only the listed blygs' resolutions count; the author's is one vote among them.
+- **Data:** the scorer computes the outcome from a machine-readable `check` (series, threshold, fallback). Nobody votes. `check` is still to design; the earnings claim is the first candidate.
+- **Scoring** counts settled outcomes by default; readers can add disputed or proposed ones. The report shows each author's proposed-vs-settled record, so a habit of generous self-grading becomes visible.
+- **Statuses** gain `proposed`, `settled` and `disputed`.
+- What this doesn't solve: Sybil witnesses (one person, many blygs) and collusion. Time and track record are the only stake; a witness's own calibration and history are shown next to their vote.
 
 ## Studio extension (stretch goal)
 
