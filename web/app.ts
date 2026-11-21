@@ -8,6 +8,8 @@ import { canRead, connect, disconnect, findBlyg, finishConnect, savedConnection,
 import { listClaims, publishClaim, resolveClaim, type MyClaim, type Published } from './studio.ts';
 import { checkAnswer, toResolution, describeOutcome, type Answer } from '../extension/ui/core/resolve.ts';
 import { shapeOf } from '../extension/ui/core/shapes.ts';
+import { loadRecord, type TrackRecord } from './record.ts';
+import { brierWords } from '../extension/ui/core/score.ts';
 import { INDICATORS, PUBLISHERS, REGISTERS, grouped, latest, type Indicator, type Reading } from './sources.ts';
 
 type Kind = 'blyg' | 'data_series' | 'record' | 'web_data' | 'judgment';
@@ -59,7 +61,11 @@ let blygInput = '';
 let notice: { kind: 'error' | 'ok'; text: string } | null = null;
 let published: Published | null = null;
 let busy = false;
-let view: 'new' | 'mine' = 'new';
+let view: 'new' | 'mine' | 'record' = 'new';
+let record: TrackRecord | null = null;
+let recordState: 'idle' | 'loading' | 'error' = 'idle';
+let recordInput = '';
+let recordProgress = '';
 let mine: MyClaim[] | null = null;
 let mineState: 'idle' | 'loading' | 'error' = 'idle';
 const R = { id: '', choice: '' as '' | 'yes' | 'no' | 'void', labels: [] as string[], value: '', evidence: '', note: '' };
@@ -304,13 +310,11 @@ function render(): void {
   const top = conn
     ? `<span class="dot"></span>${h(conn.origin.replace(/^https?:\/\//, ''))} <button type="button" class="link" data-disconnect>Disconnect</button>`
     : `<form data-connect class="connect"><input type="text" name="blyg" placeholder="your blyg, e.g. example.com/blyg" value="${h(blygInput)}" aria-label="Your blyg's address"><button type="submit">Connect</button></form>`;
-  const tabs = conn
-    ? `<nav class="tabs" aria-label="Views"><button type="button" data-view="new" aria-pressed="${view === 'new'}">New claim</button><button type="button" data-view="mine" aria-pressed="${view === 'mine'}">Your claims</button></nav>`
-    : '';
+  const tabs = `<nav class="tabs" aria-label="Views"><button type="button" data-view="new" aria-pressed="${view === 'new'}">New claim</button>${conn ? `<button type="button" data-view="mine" aria-pressed="${view === 'mine'}">Your claims</button>` : ''}<button type="button" data-view="record" aria-pressed="${view === 'record'}">Track record</button></nav>`;
   app.innerHTML = `<header><div class="brand">blyg-claims</div><div class="conn">${top}</div></header>
     ${tabs}
     ${notice ? `<div class="notice ${notice.kind}" role="status">${notice.kind === 'ok' && published ? `${h(notice.text)} <a href="${h(published.url)}" target="_blank" rel="noopener">See it on your blyg ↗</a>` : h(notice.text)}</div>` : ''}
-    <main>${view === 'mine' && conn ? renderMine() : `<div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>
+    <main>${view === 'record' ? renderRecord() : view === 'mine' && conn ? renderMine() : `<div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>
     ${stepKind()}
     ${S.shape ? stepWhat() + stepHow() + stepWhen() + stepSure() + stepCancel() + '<div id="derived"></div>' : ''}`}
     </main>`;
@@ -460,6 +464,80 @@ function rProblems(): string[] {
   return a ? checkAnswer(m.claim, a, R.evidence) : ['Choose what happened.'];
 }
 
+
+// ---------- track record ----------
+
+const STATUS_WORD: Record<string, string> = { open: 'Open', due: 'Due, not resolved', resolved: 'Resolved', void: "Couldn't be decided", record: 'On the record', withdrawn: 'Withdrawn' };
+const DECIDED_WORD: Record<string, string> = { automatic: 'Resolves automatically', record: 'Resolves from the record', judgment: 'Resolved by judgment', author: 'The author decides' };
+
+function calibrationChart(r: TrackRecord): string {
+  const W = 300, H = 220, pad = 36;
+  const x = (v: number) => pad + v * (W - pad - 10);
+  const y = (v: number) => H - pad - v * (H - pad - 10);
+  const dots = r.summary.calibration.map((b) => `<circle cx="${x(b.stated).toFixed(1)}" cy="${y(b.observed).toFixed(1)}" r="${(4 + Math.sqrt(b.n) * 3).toFixed(1)}" fill="var(--acc)" fill-opacity="0.85"><title>Said ${Math.round(b.stated * 100)}% · happened ${Math.round(b.observed * 100)}% · ${b.n} forecast${b.n === 1 ? '' : 's'}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Calibration: what was said against what happened">
+    <line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(0)}" stroke="var(--line)"/><line x1="${x(0)}" y1="${y(0)}" x2="${x(0)}" y2="${y(1)}" stroke="var(--line)"/>
+    <line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" stroke="var(--muted)" stroke-dasharray="4 4"/>
+    <text x="${x(0)}" y="${H - 18}" font-size="11" fill="var(--muted)">0%</text><text x="${x(1) - 26}" y="${H - 18}" font-size="11" fill="var(--muted)">100%</text>
+    <text x="${x(0)}" y="${H - 4}" font-size="11" fill="var(--muted)">What they said</text>
+    <text x="4" y="${y(1) + 4}" font-size="11" fill="var(--muted)">100%</text><text x="${pad - 10}" y="${y(1) + 18}" font-size="11" fill="var(--muted)" transform="rotate(-90 ${pad - 10} ${y(1) + 18})" text-anchor="end">What happened</text>
+    ${dots}</svg>`;
+}
+
+function renderRecord(): string {
+  const form = `<form data-record class="connect wide"><input type="text" name="blyg" placeholder="any blyg, e.g. caseyjr.org/blyg" value="${h(recordInput)}" aria-label="A blyg's address"><button type="submit">Show track record</button></form>`;
+  if (recordState === 'loading') return `<div class="intro"><h1>Track record</h1></div>${form}<p class="loading">Reading ${h(recordInput)}… ${h(recordProgress)}</p>`;
+  if (recordState === 'error') return `<div class="intro"><h1>Track record</h1></div>${form}<p class="notice error">Couldn't read that blyg. Check the address.</p>`;
+  if (!record) return `<div class="intro"><h1>Track record</h1><p>Anyone's claims and how they turned out, read from their blyg's public files.</p></div>${form}`;
+  const r = record;
+  const n = (st: string) => r.claims.filter((c) => c.status === st).length;
+  const pinned = r.claims.filter((c) => c.pinnedVersion !== null && c.hashOk).length;
+  const s = r.summary;
+  const tiles = [[r.claims.length, 'Claims'], [n('resolved'), 'Resolved'], [n('due'), 'Due, not resolved'], [`${pinned}/${r.claims.length}`, 'Pinned and verified']]
+    .map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+  const scores = [
+    s.brier !== null ? `<p><b class="acc">${s.brier.toFixed(3)}</b> Brier score over ${s.forecasts} probability forecast${s.forecasts === 1 ? '' : 's'}: ${brierWords(s.brier)}. Lower is better; 0.25 is always saying 50%.</p>` : '<p class="muted">No probability forecasts resolved yet.</p>',
+    s.rankingAccuracy !== null ? `<p><b class="acc">${Math.round(s.rankingAccuracy * 100)}%</b> of ranked top places came true, over ${s.rankings} ranking${s.rankings === 1 ? '' : 's'}.</p>` : '',
+    s.rangeHits !== null ? `<p><b class="acc">${Math.round(s.rangeHits * 100)}%</b> of ranges held the real number, against ${Math.round((s.rangeConfidence ?? 0) * 100)}% stated confidence.</p>` : '',
+  ].join('');
+  const list = r.claims.map((c) => {
+    const verify = c.pinnedVersion === null ? '<span class="tag warn">Not pinned: can be edited</span>'
+      : c.hashOk ? `<span class="tag">Pinned v${c.pinnedVersion} ✓</span>` : '<span class="tag warn">Pin hash mismatch</span>';
+    return `<article class="pcard mine">
+      <div class="row between"><span class="label">${STATUS_WORD[c.status]}</span><span class="muted small">by ${h(c.claim.resolves_by)}</span></div>
+      <p class="stmt">${h(c.claim.claim ?? '(no statement)')}</p>
+      <p>${forecastLine(c.claim)}${c.resolution ? ` · <b>${h(describeOutcome(c.resolution))}</b>` : ''}</p>
+      <p class="tags">${verify}<span class="tag">${DECIDED_WORD[c.decidedBy]}</span>${c.changed ? '<span class="tag warn">Claim edited after pinning: the pinned version is scored</span>' : ''}</p>
+      <p class="small"><a href="${h(c.url)}" target="_blank" rel="noopener">Open ↗</a></p></article>`;
+  }).join('');
+  return `<div class="intro"><h1>${h(r.title)}</h1><p>${h(r.origin.replace(/^https?:\/\//, ''))} · read from public files just now</p></div>${form}
+    <div class="tiles">${tiles}</div>
+    <section><h2 class="plain">Score</h2>${scores}${s.calibration.length ? calibrationChart(r) + '<p class="hint">Dots on the dashed line are perfectly calibrated: things said at 70% happened 70% of the time.</p>' : ''}</section>
+    <section><h2 class="plain">Claims</h2>${list || '<p class="hint">No claims on this blyg yet.</p>'}</section>
+    <p class="hint">Copy this page's address to share it.</p>`;
+}
+
+async function showRecord(input: string): Promise<void> {
+  recordInput = input;
+  view = 'record';
+  recordState = 'loading';
+  recordProgress = '';
+  record = null;
+  render();
+  try {
+    record = await loadRecord(input, today, (done, total) => {
+      recordProgress = `${done} of ${total} items`;
+      const el = document.querySelector('.loading');
+      if (el) el.textContent = `Reading ${input}… ${recordProgress}`;
+    });
+    recordState = 'idle';
+    history.replaceState(null, '', `${location.pathname}?blyg=${encodeURIComponent(record.origin.replace(/^https?:\/\//, '').replace(/\/$/, ''))}`);
+  } catch {
+    recordState = 'error';
+  }
+  render();
+}
+
 // ---------- events ----------
 
 function setOption(i: number, label: string): void {
@@ -506,9 +584,10 @@ app.addEventListener('click', async (e) => {
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (d.view) {
-    view = d.view as 'new' | 'mine';
+    view = d.view as 'new' | 'mine' | 'record';
     notice = null;
     if (view === 'mine' && mine === null) return void loadMine();
+    if (view === 'record' && !record && conn && !recordInput) return void showRecord(conn.origin.replace(/^https?:\/\//, ''));
     return render();
   }
   if (d.rStart) {
@@ -626,6 +705,10 @@ app.addEventListener('click', async (e) => {
 
 app.addEventListener('submit', async (e) => {
   const form = e.target as HTMLFormElement;
+  if (form.matches('[data-record]')) {
+    e.preventDefault();
+    return void showRecord((form.elements.namedItem('blyg') as HTMLInputElement).value);
+  }
   if (!form.matches('[data-connect]')) return;
   e.preventDefault();
   blygInput = (form.elements.namedItem('blyg') as HTMLInputElement).value;
@@ -652,6 +735,8 @@ finishConnect()
     notice = { kind: 'error', text: err instanceof Error ? err.message : String(err) };
   })
   .finally(() => {
+    const shared = new URLSearchParams(location.search).get('blyg');
+    if (shared) return void showRecord(shared);
     render();
     if (S.kind === 'data_series') void loadReading();
   });
