@@ -22,7 +22,21 @@ a{color:#D4FF3A}a:hover{color:#F4F4EE}
 @media (prefers-reduced-motion: reduce){*{animation:none!important}}
 
 html{scroll-behavior:smooth}
-@media (max-width: 640px) { h1 { font-size: 64px !important; } h2 { font-size: 38px !important; } }
+.kind{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid #2B2C26;background:transparent;color:#B5B8A8;font:600 14px Inter,sans-serif;cursor:pointer;transition:background .25s,color .25s,border-color .25s,transform .25s}
+.kind:hover{border-color:#D4FF3A;color:#F4F4EE}
+.kind[aria-pressed="true"]{background:#D4FF3A;border-color:#D4FF3A;color:#0B0B0A;transform:translateY(-2px)}
+#q{display:block;width:100%;overflow:hidden;margin:8px 0 0;padding:0;border:0;outline:0;resize:none;background:transparent;color:#F4F4EE;font:500 24px/1.2 'Space Grotesk',sans-serif;caret-color:#D4FF3A}
+#q::placeholder{color:#5d6052}
+label[for="q"]:focus-within{border-color:#D4FF3A!important;box-shadow:0 0 0 3px rgba(212,255,58,.25)}
+#go:focus-visible,.kind:focus-visible,.tick a:focus-visible{outline:3px solid #D4FF3A;outline-offset:3px}
+#stamp.on{animation:blyggi-pop .5s both}
+#stamp.off{opacity:0}
+.tick{display:inline-flex;animation:blyggi-marquee var(--d,40s) linear infinite}
+.tick:hover,.tick:focus-within{animation-play-state:paused}
+.tick a{color:inherit;text-decoration:none}
+.tick a:hover span.t{text-decoration:underline}
+
+@media (max-width: 640px) { h1 { font-size: 64px !important; } h2 { font-size: 38px !important; } #try { padding: 20px !important; transform: rotate(-1deg) !important; box-shadow: 8px 8px 0 rgba(11,11,10,.9) !important; } #q { font-size: 20px !important; } #by { font-size: 30px !important; } }
 </style>
 </head>
 <body>
@@ -38,7 +52,7 @@ html{scroll-behavior:smooth}
     <a href="/new/" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 22px; background: #0B0B0A; color: #D4FF3A; font-weight: 700; text-decoration: none">Make a claim</a>
   </div>
 </nav>
-<div style="max-width: 1240px; margin: 0 auto; padding: 60px 32px 110px; display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 56px; align-items: center">
+<div style="max-width: 1240px; margin: 0 auto; padding: 60px 32px 110px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 56px; align-items: center">
   <div>
     <p style="margin: 0; display: inline-flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 20px; border: 2px solid #0B0B0A; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase"><span style="width: 8px; height: 8px; border-radius: 4px; background: #0B0B0A; animation: blyggi-pulse 1.4s infinite"></span>Forecasts you can't take back</p>
     <h1 style="margin: 26px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 112px; line-height: .9; letter-spacing: -0.055em">Say it.<br>Pin it.<br>Get scored.</h1>
@@ -48,25 +62,30 @@ html{scroll-behavior:smooth}
       <a href="/record/?blyg=caseyjr.org/blyg" style="display: inline-flex; align-items: center; min-height: 60px; padding: 0 30px; border-radius: 30px; border: 2px solid #0B0B0A; color: #0B0B0A; font-weight: 700; font-size: 19px; text-decoration: none">See a track record</a>
     </div>
   </div>
-  <div style="display: flex; justify-content: center"><div aria-label="A claim being made" style="width: 100%; max-width: 520px; padding: 26px; border-radius: 26px; background: #161614; border: 2px solid #0B0B0A; box-shadow: 14px 14px 0 rgba(11,11,10,.9); transform: rotate(-1.5deg); color: #F4F4EE; display: flex; flex-direction: column; gap: 18px">
+  <div style="display: flex; justify-content: center"><form id="try" action="/new/" method="get" aria-label="Start a claim" style="width: 100%; max-width: 520px; margin: 0; padding: 26px; border-radius: 26px; background: #161614; border: 2px solid #0B0B0A; box-shadow: 14px 14px 0 rgba(11,11,10,.9); transform: rotate(-1.5deg); color: #F4F4EE; display: flex; flex-direction: column; gap: 18px">
   <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px">New claim</span><span style="display: inline-flex; gap: 8px; align-items: center; color: #B5B8A8; font-size: 13px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #D4FF3A"></span>your-blyg.com/blyg</span></div>
-  <ol style="margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><li style="list-style: none; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; animation: blyggi-step 6s 0.0s infinite both">1 · What kind of claim?</li><li style="list-style: none; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; animation: blyggi-step 6s 0.9s infinite both">2 · What will happen?</li><li style="list-style: none; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; animation: blyggi-step 6s 1.8s infinite both">3 · By when?</li><li style="list-style: none; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; animation: blyggi-step 6s 2.7s infinite both">4 · How sure?</li></ol>
-  <div style="padding: 18px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26">
-    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #B5B8A8">What will happen?</span>
-    <p style="margin: 8px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; line-height: 1.2">University of Alabama wins this year's Iron Bowl<span style="color: #D4FF3A; animation: blyggi-blink 1s infinite">▍</span></p>
+  <div id="kinds" role="group" aria-label="Kind of claim" style="display: flex; flex-wrap: wrap; gap: 8px">
+    <button type="button" class="kind" data-k="binary">Yes or no</button><button type="button" class="kind" data-k="one">Pick one</button><button type="button" class="kind" data-k="order">Top N</button><button type="button" class="kind" data-k="quantity">A number</button><button type="button" class="kind" data-k="record">Just record it</button>
   </div>
+  <label for="q" style="display: block; padding: 18px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26; cursor: text">
+    <span style="display: flex; justify-content: space-between; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #B5B8A8"><span>What will happen?</span><span id="topic" style="color: #D4FF3A">Football</span></span>
+    <textarea id="q" name="q" rows="2" maxlength="300" spellcheck="true" aria-describedby="hint">University of Alabama wins this year's Iron Bowl</textarea>
+    <span id="hint" style="display: block; margin-top: 6px; font-size: 13px; color: #B5B8A8">Tap to write your own.</span>
+  </label>
   <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
-    <div style="padding: 16px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26"><span style="font-size: 12px; color: #B5B8A8">How sure</span><div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: #D4FF3A; letter-spacing: -0.03em">65%</div><div style="height: 8px; border-radius: 4px; background: #2B2C26" aria-hidden="true"><div style="--w: 65%; width: 65%; height: 8px; border-radius: 4px; background: #D4FF3A; animation: blyggi-fill 2s .6s cubic-bezier(.2,.8,.2,1) both"></div></div></div>
-    <div style="padding: 16px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26"><span style="font-size: 12px; color: #B5B8A8">By</span><div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.03em">Nov 29</div><span style="font-size: 13px; color: #B5B8A8">2026</span></div>
+    <div style="padding: 16px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26; min-width: 0"><span id="sureLabel" style="font-size: 12px; color: #B5B8A8">How sure</span><div id="sure" style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: #D4FF3A; letter-spacing: -0.03em; line-height: 1.15; min-height: 46px; display: flex; align-items: center">65%</div><div id="barWrap" style="height: 8px; border-radius: 4px; background: #2B2C26" aria-hidden="true"><div id="bar" style="width: 65%; height: 8px; border-radius: 4px; background: #D4FF3A; transition: width 1.2s cubic-bezier(.2,.8,.2,1)"></div></div><span id="sureSub" style="font-size: 13px; color: #B5B8A8"></span></div>
+    <div style="padding: 16px; border-radius: 16px; background: #0B0B0A; border: 1px solid #2B2C26"><span style="font-size: 12px; color: #B5B8A8">By</span><div id="by" style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; min-height: 46px">Nov 29</div><span id="year" style="font-size: 13px; color: #B5B8A8">2026</span></div>
   </div>
+  <p style="margin: -4px 0 0; font-size: 14px; color: #B5B8A8">Checked by <b id="check" style="color: #F4F4EE; font-weight: 600">the final score</b></p>
+  <input type="hidden" name="shape" id="shape" value="binary"><input type="hidden" name="pick" id="pick" value="">
   <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
-    <a href="/new/" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; border-radius: 26px; background: #D4FF3A; color: #0B0B0A; font-weight: 700; text-decoration: none">Publish and pin</a>
-    <span style="padding: 8px 12px; border: 2px solid #D4FF3A; border-radius: 10px; color: #D4FF3A; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; letter-spacing: .1em; transform: rotate(-5deg); animation: blyggi-pop .5s 3.4s both">PINNED v1 ✓</span>
+    <button type="submit" id="go" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; border: 0; border-radius: 26px; background: #D4FF3A; color: #0B0B0A; font: 700 16px Inter, sans-serif; cursor: pointer">Make this claim →</button>
+    <span id="stamp" style="padding: 8px 12px; border: 2px solid #D4FF3A; border-radius: 10px; color: #D4FF3A; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; letter-spacing: .1em; transform: rotate(-5deg)">PINNED v1 ✓</span>
   </div>
-</div></div>
+</form></div>
 </div>
 </header>
-<div aria-label="Live claims" style="overflow: hidden; background: #0B0B0A; color: #D4FF3A; border-top: 2px solid #D4FF3A; border-bottom: 2px solid #D4FF3A; padding: 14px 0; font-family: Inter, sans-serif; font-size: 17px"><div style="display: inline-flex; animation: blyggi-marquee 40s linear infinite"><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">65%</b><span>University of Alabama wins this year&#x27;s Iron Bowl</span><span style="opacity: .7">by Nov 29, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Two more blygs post a claim before the hackathon ends</span><span style="opacity: .7">by Nov 27, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>An open-weights model matches the best closed model of Dec 2025</span><span style="opacity: .7">by Jun 19, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">80%</b><span>The AI proof of the Riemann hypothesis checks out; the rushed human one has a flaw</span><span style="opacity: .7">by Jun 30, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Real median weekly earnings of US professionals fall 10% below Q2 2026</span><span style="opacity: .7">by Mar 31, 2031</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">65%</b><span>University of Alabama wins this year&#x27;s Iron Bowl</span><span style="opacity: .7">by Nov 29, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Two more blygs post a claim before the hackathon ends</span><span style="opacity: .7">by Nov 27, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>An open-weights model matches the best closed model of Dec 2025</span><span style="opacity: .7">by Jun 19, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">80%</b><span>The AI proof of the Riemann hypothesis checks out; the rushed human one has a flaw</span><span style="opacity: .7">by Jun 30, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Real median weekly earnings of US professionals fall 10% below Q2 2026</span><span style="opacity: .7">by Mar 31, 2031</span><span style="color: #D4FF3A">●</span></span></div></div><section id="protocol" style="background: #0B0B0A; color: #F4F4EE; padding: 110px 32px">
+<div aria-label="Claims people have pinned" style="overflow: hidden; background: #0B0B0A; color: #D4FF3A; border-top: 2px solid #D4FF3A; border-bottom: 2px solid #D4FF3A; padding: 14px 0; font-family: Inter, sans-serif; font-size: 17px"><div id="tick" class="tick"><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">65%</b><span>University of Alabama wins this year&#x27;s Iron Bowl</span><span style="opacity: .7">by Nov 29, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Two more blygs post a claim before the hackathon ends</span><span style="opacity: .7">by Nov 27, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>An open-weights model matches the best closed model of Dec 2025</span><span style="opacity: .7">by Jun 19, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">80%</b><span>The AI proof of the Riemann hypothesis checks out; the rushed human one has a flaw</span><span style="opacity: .7">by Jun 30, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Real median weekly earnings of US professionals fall 10% below Q2 2026</span><span style="opacity: .7">by Mar 31, 2031</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">65%</b><span>University of Alabama wins this year&#x27;s Iron Bowl</span><span style="opacity: .7">by Nov 29, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Two more blygs post a claim before the hackathon ends</span><span style="opacity: .7">by Nov 27, 2026</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>An open-weights model matches the best closed model of Dec 2025</span><span style="opacity: .7">by Jun 19, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">80%</b><span>The AI proof of the Riemann hypothesis checks out; the rushed human one has a flaw</span><span style="opacity: .7">by Jun 30, 2027</span><span style="color: #D4FF3A">●</span></span><span style="display: inline-flex; align-items: center; gap: 14px; padding: 0 28px; white-space: nowrap"><b style="font-family: 'JetBrains Mono', monospace">85%</b><span>Real median weekly earnings of US professionals fall 10% below Q2 2026</span><span style="opacity: .7">by Mar 31, 2031</span><span style="color: #D4FF3A">●</span></span></div></div><section id="protocol" style="background: #0B0B0A; color: #F4F4EE; padding: 110px 32px">
   <div style="max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 48px 80px">
     <div>
       <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: #D4FF3A">Built on Blygger</p>
@@ -130,5 +149,135 @@ html{scroll-behavior:smooth}
   </div>
 </section>
 </div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const q = $('q'), topic = $('topic'), hint = $('hint'), sure = $('sure'), sureSub = $('sureSub'), sureLabel = $('sureLabel');
+  const bar = $('bar'), barWrap = $('barWrap'), by = $('by'), year = $('year'), check = $('check'), stamp = $('stamp');
+  const kinds = [...document.querySelectorAll('.kind')];
+  const SHAPE = { binary: ['binary', ''], one: ['choice', 'one'], order: ['choice', 'order'], quantity: ['quantity', ''], record: ['record', ''] };
+  const EX = [
+    { t: 'Football', q: "University of Alabama wins this year's Iron Bowl", k: 'binary', s: '65%', p: 65, by: 'Nov 29', y: '2026', c: 'the final score' },
+    { t: 'Premier League', q: 'The top four of the 2026–27 Premier League, in order', k: 'order', s: '1 Arsenal\n2 Man City\n3 Liverpool\n4 Chelsea', by: 'May 31', y: '2027', c: 'the final league table' },
+    { t: 'Markets', q: "Nvidia's market cap at the close on the last trading day of 2027", k: 'quantity', s: '$4–8T', sub: '80% sure it lands in range', by: 'Dec 31', y: '2027', c: 'closing market data' },
+    { t: 'AI', q: 'An open-weights model ranks #1 on the LMArena text leaderboard', k: 'binary', s: '20%', p: 20, by: 'Dec 31', y: '2027', c: 'the public leaderboard' },
+    { t: 'Cricket', q: 'Who wins the 2027 Cricket World Cup?', k: 'one', s: 'India 30%', p: 30, sub: 'Australia 25% · South Africa 15% · …', by: 'Nov 30', y: '2027', c: "the ICC's official result" },
+    { t: 'Poverty', q: 'Fewer than 9% of people worldwide live on under $3 a day', k: 'binary', s: '40%', p: 40, by: 'Dec 31', y: '2030', c: 'World Bank poverty data' },
+    { t: 'Space', q: 'Astronauts walk on the Moon again', k: 'binary', s: '45%', p: 45, by: 'Dec 31', y: '2028', c: 'the mission record' },
+    { t: 'Health', q: 'Wild poliovirus cases reported worldwide in 2027', k: 'quantity', s: '0–60', sub: 'cases · 80% sure', by: 'Mar 31', y: '2028', c: 'WHO case counts' },
+    { t: 'Energy', q: "Renewables make more than 36% of the world's electricity in 2027", k: 'binary', s: '60%', p: 60, by: 'Jun 30', y: '2028', c: 'Ember electricity data' },
+    { t: 'For the record', q: 'Remote work will look like a mistake by 2035', k: 'record', s: 'On record', sub: 'Pinned, never scored', by: 'Dec 31', y: '2035', c: 'nobody: it just stands' },
+  ];
+  const fit = () => { q.style.height = 'auto'; q.style.height = q.scrollHeight + 'px'; };
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let live = true, manual = null, i = 0, timer = null;
+
+  const light = (k) => {
+    kinds.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    $('shape').value = SHAPE[k][0];
+    $('pick').value = SHAPE[k][1];
+    $('pick').disabled = !SHAPE[k][1];
+  };
+  const panel = (s, p, sub) => {
+    sure.textContent = s;
+    sure.style.whiteSpace = 'pre-line';
+    sure.style.fontSize = s.length > 12 ? '17px' : s.length > 6 ? '30px' : '40px';
+    barWrap.style.visibility = p == null ? 'hidden' : 'visible';
+    bar.style.width = (p ?? 0) + '%';
+    sureSub.textContent = sub || '';
+  };
+  const show = (e) => {
+    topic.textContent = e.t;
+    light(e.k);
+    panel(e.s, e.p, e.sub);
+    by.textContent = e.by; year.textContent = e.y; check.textContent = e.c;
+  };
+  const pin = (on) => { stamp.className = ''; void stamp.offsetWidth; stamp.className = on ? 'on' : 'off'; };
+
+  const type = (text, done) => {
+    if (calm) { q.value = text; fit(); return void done(); }
+    let n = 0;
+    const step = () => {
+      if (!live) return;
+      q.value = text.slice(0, ++n);
+      fit();
+      if (n < text.length) timer = setTimeout(step, 28 + Math.random() * 30);
+      else done();
+    };
+    q.value = '';
+    step();
+  };
+  const next = () => {
+    if (!live) return;
+    const e = EX[i++ % EX.length];
+    pin(false);
+    show(e);
+    type(e.q, () => { pin(true); timer = setTimeout(next, calm ? 4000 : 2600); });
+  };
+
+  // Rough read of what kind of claim someone is typing. They can always tap another.
+  const guess = (raw) => {
+    const s = ' ' + raw.toLowerCase() + ' ';
+    if (/\b(for the record|mark my words|history will|in hindsight)\b/.test(s)) return 'record';
+    if (/\b(top (\d+|two|three|four|five|ten)|rank(ed|ing)?|in order|podium|standings)\b/.test(s)) return 'order';
+    if (/\b(who (will )?wins?|which|winner of|who takes)\b|\w \bor\b \w/.test(s)) return 'one';
+    if (/\b(above|below|over|under|more than|less than|fewer than|at least|at most|exceeds?|reach(es)?|hits?|falls?|rises?|tops?|before|by \d{4})\b/.test(s)) return 'binary';
+    if (/\b(how (much|many|high|low|big)|what will .* be|market cap|price of|rate of|level of|number of|count of|share of)\b|[$€£%]/.test(s)) return 'quantity';
+    return 'binary';
+  };
+  const SET = {
+    binary: ['Yes or no', 'You set a probability next', null],
+    one: ['Pick one', 'You list the options next', null],
+    order: ['Top N', 'You put them in order next', null],
+    quantity: ['A number', 'You give a range next', null],
+    record: ['Just record it', 'Pinned, never scored', null],
+  };
+  const yours = () => {
+    const k = manual ?? guess(q.value);
+    light(k);
+    panel(q.value.trim() ? '?' : '—', null, SET[k][1]);
+  };
+  const takeOver = () => {
+    if (!live) return;
+    live = false;
+    clearTimeout(timer);
+    pin(false);
+    q.value = '';
+    fit();
+    q.placeholder = 'Type what you think will happen…';
+    topic.textContent = 'Yours';
+    hint.textContent = 'Plain words are fine. Press Enter or tap the button.';
+    sureLabel.textContent = 'How sure';
+    by.textContent = 'Next'; year.textContent = 'you pick the date';
+    check.textContent = 'you choose, next';
+    $('go').textContent = 'Start this claim →';
+    yours();
+  };
+
+  q.addEventListener('focus', takeOver);
+  q.addEventListener('input', () => { fit(); yours(); });
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); $('try').requestSubmit(); } });
+  kinds.forEach((b) => b.addEventListener('click', () => { takeOver(); manual = b.dataset.k; yours(); q.focus(); }));
+  $('try').addEventListener('submit', (ev) => {
+    if (live) { ev.preventDefault(); takeOver(); q.focus(); return; }
+    if (!q.value.trim()) { ev.preventDefault(); q.focus(); }
+  });
+  next();
+
+  // The ticker: real, pinned claims from public blygs, refreshed at every deploy.
+  const tick = $('tick');
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const date = (d) => { const t = new Date(d + 'T00:00:00Z'); return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
+  fetch('/claims.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).then((j) => {
+    const list = j && Array.isArray(j.claims) ? j.claims.filter((c) => c.claim && c.page) : [];
+    if (!list.length) return;
+    let row = list;
+    while (row.length < 8) row = row.concat(list);
+    const one = row.map((c) => `<a href="${esc(c.page)}" style="display:inline-flex;align-items:center;gap:14px;padding:0 28px;white-space:nowrap"><b style="font-family:'JetBrains Mono',monospace">${esc(c.sure)}</b><span class="t">${esc(c.claim.length > 90 ? c.claim.slice(0, 88) + '…' : c.claim)}</span><span style="opacity:.7">${esc(c.blyg)} · by ${esc(date(c.by))}</span><span title="${c.pinned ? 'Pinned' : 'Not pinned yet'}">${c.pinned ? '●' : '○'}</span></a>`).join('');
+    tick.innerHTML = one + one.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ');
+    tick.style.setProperty('--d', row.length * 7 + 's');
+  }).catch(() => {});
+})();
+</script>
 </body>
 </html>

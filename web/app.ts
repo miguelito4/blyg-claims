@@ -3,7 +3,7 @@
 
 import { mistakes, toClaim, toMarkdown, withCatchAll, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
 import { resolvesBy, type Check } from '../extension/ui/core/check.ts';
-import { SOMETHING_ELSE, type Pick, type Shape } from '../extension/ui/core/shapes.ts';
+import { PICKS, SHAPES, SOMETHING_ELSE, type Pick, type Shape } from '../extension/ui/core/shapes.ts';
 import { canRead, connect, disconnect, findBlyg, finishConnect, savedConnection, type Connection } from './oauth.ts';
 import { listClaims, publishClaim, resolveClaim, type MyClaim, type Published } from './studio.ts';
 import { checkAnswer, toResolution, describeOutcome, type Answer } from '../extension/ui/core/resolve.ts';
@@ -15,6 +15,19 @@ import { INDICATORS, PUBLISHERS, REGISTERS, grouped, latest, type Indicator, typ
 type Kind = 'blyg' | 'data_series' | 'record' | 'web_data' | 'judgment';
 
 const today = new Date().toISOString().slice(0, 10);
+
+/** A claim started on the home page arrives as ?q=…&shape=…&pick=…; only an empty composer takes it. */
+function startFrom(params: URLSearchParams): void {
+  const q = params.get('q')?.replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!q || S.statement) return;
+  S.statement = q;
+  const shape = params.get('shape');
+  S.shape = (SHAPES as readonly string[]).includes(shape ?? '') ? (shape as Shape) : 'binary';
+  const pick = params.get('pick');
+  if ((PICKS as readonly string[]).includes(pick ?? '')) S.pick = pick as Pick;
+  if (S.pick === 'order') S.rankOnly = true;
+  history.replaceState(null, '', location.pathname);
+}
 
 const S = {
   shape: null as Shape | null,
@@ -735,8 +748,10 @@ finishConnect()
     notice = { kind: 'error', text: err instanceof Error ? err.message : String(err) };
   })
   .finally(() => {
-    const shared = new URLSearchParams(location.search).get('blyg');
+    const params = new URLSearchParams(location.search);
+    const shared = params.get('blyg');
     if (shared) return void showRecord(shared);
+    startFrom(params);
     render();
     if (S.kind === 'data_series') void loadReading();
   });
