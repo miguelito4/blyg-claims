@@ -10,8 +10,14 @@ export interface ClaimBlock {
   discussion?: string;
   tags?: string[];
   commit?: string;
+  /** Who decides: "anyone" (default), "data", or a list of blyg URLs. */
+  resolvers?: 'anyone' | 'data' | string[];
+  /** Days others have to dispute a proposed outcome. Default 7. */
+  dispute_days?: number;
   [extra: string]: unknown;
 }
+
+export const DEFAULT_DISPUTE_DAYS = 7;
 
 export type Outcome = true | false | 'void';
 
@@ -68,6 +74,16 @@ export function checkClaim(value: unknown): { errors: string[]; warnings: string
   if ('commit' in value && !(typeof value.commit === 'string' && /^sha256:[0-9a-f]{64}$/.test(value.commit))) {
     errors.push('`commit` must be sha256: followed by 64 lowercase hex digits');
   }
+  if ('resolvers' in value) {
+    const r = value.resolvers;
+    const ok = r === 'anyone' || r === 'data' ||
+      (Array.isArray(r) && r.length > 0 && r.every((u) => typeof u === 'string' && /^https?:\/\/\S+$/.test(u)) && new Set(r).size === r.length);
+    if (!ok) errors.push('`resolvers` must be "anyone", "data", or a list of distinct blyg URLs');
+  }
+  if ('dispute_days' in value && !(Number.isInteger(value.dispute_days) && (value.dispute_days as number) >= 1 && (value.dispute_days as number) <= 90)) {
+    errors.push('`dispute_days` must be a whole number from 1 to 90');
+  }
+  if (value.resolvers === 'data' && !('check' in value)) warnings.push('`resolvers` is "data" but there is no machine-readable `check` yet');
   if (!('claim' in value)) warnings.push('no `claim`: the statement is only in the prose');
   if (!('criteria' in value)) warnings.push('no `criteria`: nobody else can resolve this');
   return { errors, warnings };
