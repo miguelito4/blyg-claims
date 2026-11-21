@@ -196,13 +196,16 @@
   ],
   "$defs": {
     "check": {
-      "description": "Four kinds of source, by how trust in the answer is established: the protocol, a publisher's versioned statistics, an unversioned web document, or people.",
+      "description": "Five kinds of source, by where trust in the answer comes from: the protocol, a publisher's versioned statistics, the authority that keeps a record, an unversioned web document, or people.",
       "oneOf": [
         {
           "$ref": "#/$defs/blyg"
         },
         {
           "$ref": "#/$defs/data_series"
+        },
+        {
+          "$ref": "#/$defs/record"
         },
         {
           "$ref": "#/$defs/web_data"
@@ -298,9 +301,12 @@
         },
         "provider": {
           "enum": [
-            "fred"
+            "fred",
+            "worldbank",
+            "owid",
+            "bis"
           ],
-          "description": "Who publishes the series. FRED (with ALFRED vintages) first; others added as adapters."
+          "description": "Who publishes the series: FRED/ALFRED, World Bank, Our World in Data, Bank for International Settlements."
         },
         "value": {
           "type": "string",
@@ -329,6 +335,40 @@
         },
         "fallback": {
           "$ref": "#/$defs/check"
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "description": "An event of record kept by an authority: a bill's status, a filing, a paper, a ruling.",
+      "required": [
+        "oracle",
+        "registry",
+        "id",
+        "event"
+      ],
+      "properties": {
+        "oracle": {
+          "const": "record"
+        },
+        "registry": {
+          "enum": [
+            "congress",
+            "sec",
+            "arxiv",
+            "courtlistener",
+            "other"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The record's own identifier or URL."
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What has to appear in the record, e.g. \"became law\"."
         }
       }
     },

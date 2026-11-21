@@ -33,7 +33,7 @@ test('valid checks for each oracle', () => {
 });
 
 test('oracle names are a closed list: no free text', () => {
-  assert.match(checkCheck({ ...hackathon, oracle: 'Federal Reserve of St. Louis' })[0], /must be one of blyg, data_series, web_data, judgment/);
+  assert.match(checkCheck({ ...hackathon, oracle: 'Federal Reserve of St. Louis' })[0], /must be one of blyg, data_series, record, web_data, judgment/);
   assert.match(checkCheck({ ...hackathon, oracle: 'fred' })[0], /must be one of/, 'a provider is not a kind of source');
   assert.match(checkCheck({ ...earnings, provider: 'Federal Reserve of St. Louis' })[0], /provider/);
 });
@@ -50,6 +50,12 @@ test('each oracle checks its own parameters', () => {
 test('automatic checks need a comparison; errors in a fallback are found too', () => {
   assert.match(checkCheck({ oracle: 'web_data', url: 'https://example.org/x.json', pointer: '/n' }).join(' '), /op.*threshold/s);
   assert.match(checkCheck({ ...earnings, fallback: { oracle: 'data_series', provider: 'fred', value: 'X@2030-01-01', as_of: 'nope', op: '<=', threshold: 1 } })[0], /check\.fallback\.as_of/);
+});
+
+test('records', () => {
+  assert.deepEqual(checkCheck({ oracle: 'record', registry: 'arxiv', id: '2511.00001', event: 'a revised version withdraws the proof' }), []);
+  assert.match(checkCheck({ oracle: 'record', registry: 'twitter', id: 'x', event: 'y' })[0], /registry/);
+  assert.equal(resolvesBy({ oracle: 'record', registry: 'congress', id: '119/hr/1', event: 'became law' }), 'record');
 });
 
 test('automatic versus judgment', () => {

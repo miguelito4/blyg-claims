@@ -3,12 +3,13 @@
 // mean the same source write the same thing. The claim carries the whole
 // specification; resolving it never consults a catalog or a service.
 
-// Four kinds of source, mutually exclusive by how trust in the answer is
-// established, and together exhaustive: an outcome is computed from the
-// protocol, from a publisher's versioned statistics or from an unversioned web
-// document, or else people decide it.
-export const ORACLES = ['blyg', 'data_series', 'web_data', 'judgment'] as const;
-export const PROVIDERS = ['fred'] as const;
+// Five kinds of source, mutually exclusive by where trust in the answer comes
+// from, and together exhaustive: the protocol, a publisher's versioned
+// statistics, the authority that keeps a record, an unversioned web document,
+// or people.
+export const ORACLES = ['blyg', 'data_series', 'record', 'web_data', 'judgment'] as const;
+export const PROVIDERS = ['fred', 'worldbank', 'owid', 'bis'] as const;
+export const REGISTRIES = ['congress', 'sec', 'arxiv', 'courtlistener', 'other'] as const;
 export type OracleType = (typeof ORACLES)[number];
 export const OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
 export type Op = (typeof OPS)[number];
@@ -34,6 +35,16 @@ export interface DataSeriesCheck extends Comparison {
   as_of: string;
 }
 
+/** An event of record: a bill's status, a filing, a paper, a ruling. */
+export interface RecordCheck {
+  oracle: 'record';
+  registry: (typeof REGISTRIES)[number];
+  /** The record's own identifier or URL, e.g. "119/hr/1" or an arXiv ID. */
+  id: string;
+  /** What has to appear in the record, e.g. "became law". */
+  event: string;
+}
+
 export interface WebDataCheck extends Comparison {
   oracle: 'web_data';
   url: string;
@@ -46,11 +57,11 @@ export interface JudgmentCheck {
   evidence?: string;
 }
 
-export type Check = BlygCheck | DataSeriesCheck | WebDataCheck | JudgmentCheck;
+export type Check = BlygCheck | DataSeriesCheck | RecordCheck | WebDataCheck | JudgmentCheck;
 
-/** "automatic" checks are computed from public data; "judgment" ones are decided by people. */
-export function resolvesBy(check: Check): 'automatic' | 'judgment' {
-  return check.oracle === 'judgment' ? 'judgment' : 'automatic';
+/** How the card describes resolution: computed from data, read from a record, or decided by people. */
+export function resolvesBy(check: Check): 'automatic' | 'record' | 'judgment' {
+  return check.oracle === 'judgment' ? 'judgment' : check.oracle === 'record' ? 'record' : 'automatic';
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -73,7 +84,7 @@ export function checkCheck(value: unknown, path = 'check'): string[] {
     return [`\`${path}.oracle\` must be one of ${ORACLES.join(', ')}`];
   }
   const errs: string[] = [];
-  if (o !== 'judgment') {
+  if (o !== 'judgment' && o !== 'record') {
     if (!(OPS as readonly unknown[]).includes(value.op)) errs.push(`\`${path}.op\` must be one of ${OPS.join(' ')}`);
     if (!['number', 'boolean', 'string'].includes(typeof value.threshold)) errs.push(`\`${path}.threshold\` is required`);
     if ('fallback' in value) errs.push(...checkCheck(value.fallback, `${path}.fallback`));
@@ -89,6 +100,11 @@ export function checkCheck(value: unknown, path = 'check'): string[] {
       if (!(PROVIDERS as readonly unknown[]).includes(value.provider)) errs.push(`\`${path}.provider\` must be one of ${PROVIDERS.join(', ')}`);
       if (typeof value.value !== 'string' || !/[A-Z0-9]+@/.test(value.value)) errs.push(`\`${path}.value\` must name at least one SERIES@DATE`);
       if (typeof value.as_of !== 'string' || !DATE.test(value.as_of)) errs.push(`\`${path}.as_of\` must be a date in YYYY-MM-DD form`);
+      break;
+    case 'record':
+      if (!(REGISTRIES as readonly unknown[]).includes(value.registry)) errs.push(`\`${path}.registry\` must be one of ${REGISTRIES.join(', ')}`);
+      if (typeof value.id !== 'string' || !value.id.trim()) errs.push(`\`${path}.id\` must name the record`);
+      if (typeof value.event !== 'string' || !value.event.trim()) errs.push(`\`${path}.event\` must say what has to appear in the record`);
       break;
     case 'web_data':
       if (!isUrl(value.url)) errs.push(`\`${path}.url\` must be an http(s) URL`);
