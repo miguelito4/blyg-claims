@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explore claims · Blyggi</title>
+<meta name="description" content="Every forecast pinned on a public blyg: what people said, how sure they were, when it comes due, and how it turned out.">
+<meta name="theme-color" content="#0B0B0A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>
+:root{--bg:#0B0B0A;--surface:#161614;--line:#2B2C26;--ink:#F4F4EE;--muted:#B5B8A8;--acc:#D4FF3A;--due:#FFB547;--bad:#FF6B5C}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif}
+a{color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+header{background:var(--acc);color:var(--bg)}
+nav{display:flex;flex-wrap:wrap;gap:12px 26px;align-items:center;justify-content:space-between;padding:18px 0}
+.logo{font:700 26px 'Space Grotesk',sans-serif;letter-spacing:-.03em;text-decoration:none}
+nav .links{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;font-size:15px;font-weight:500}
+nav .links a{text-decoration:none}
+nav .links a[aria-current]{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
+.cta{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:22px;background:var(--bg);color:var(--acc)!important;font-weight:700}
+.hero{background:var(--acc);color:var(--bg);padding:34px 0 46px;border-bottom:2px solid var(--bg)}
+.kicker{display:inline-flex;gap:10px;align-items:center;padding:7px 13px;border-radius:20px;border:2px solid var(--bg);font:700 12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
+.kicker i{width:8px;height:8px;border-radius:4px;background:var(--bg);animation:pulse 1.4s infinite}
+h1{margin:18px 0 0;font:700 76px/.92 'Space Grotesk',sans-serif;letter-spacing:-.05em}
+.lede{margin:16px 0 0;font-size:19px;max-width:640px}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.stat{padding:12px 18px;border-radius:16px;background:var(--bg);color:var(--ink);min-width:118px}
+.stat b{display:block;font:700 34px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:var(--acc)}
+.stat span{font-size:13px;color:var(--muted)}
+.stat.due b{color:var(--due)}
+.fresh{margin:14px 0 0;font:500 13px 'JetBrains Mono',monospace}
+.next{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px;margin:28px 0 0}
+.next a{display:block;padding:16px 18px;border-radius:18px;border:2px solid var(--bg);text-decoration:none;background:rgba(11,11,10,.06);transition:transform .2s,box-shadow .2s}
+.next a:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--bg)}
+.next .when{font:700 12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
+.next .what{display:block;margin-top:6px;font:600 17px/1.3 'Space Grotesk',sans-serif}
+.tabs{display:flex;gap:8px;margin:34px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{appearance:none;border:0;background:none;color:var(--muted);font:600 16px Inter,sans-serif;padding:12px 4px;margin-right:18px;border-bottom:3px solid transparent;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--acc)}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:32px;padding:28px 0 90px}
+aside{display:flex;flex-direction:column;gap:22px;position:sticky;top:16px;align-self:start}
+.search{width:100%;min-height:46px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 15px Inter,sans-serif}
+.search:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(212,255,58,.22)}
+.group h3{margin:0 0 8px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .2s,color .2s,border-color .2s}
+.chip:hover{border-color:var(--acc);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+.chip small{font:700 11px 'JetBrains Mono',monospace;opacity:.7}
+select{width:100%;min-height:42px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px Inter,sans-serif}
+.clear{align-self:flex-start;background:none;border:0;color:var(--acc);font:600 14px Inter,sans-serif;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:4px}
+.count{margin:0 0 14px;color:var(--muted);font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:16px}
+.card{display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:22px;background:var(--surface);border:1px solid var(--line);animation:rise .35s both}
+.card:hover{border-color:#4a4c40}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:10px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);color:var(--muted)}
+.badge.open{color:var(--acc);border-color:rgba(212,255,58,.45)}
+.badge.open::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--acc);animation:pulse 1.4s infinite}
+.badge.due{color:var(--due);border-color:rgba(255,181,71,.5)}
+.badge.resolved{color:var(--ink);border-color:var(--ink)}
+.badge.withdrawn,.badge.void{color:var(--bad);border-color:rgba(255,107,92,.5)}
+.tag{padding:3px 9px;border-radius:10px;background:#20211c;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border:0}
+.tag:hover{color:var(--ink)}
+.stmt{margin:0;font:600 21px/1.25 'Space Grotesk',sans-serif;letter-spacing:-.01em}
+.sure{font:700 30px/1.1 'Space Grotesk',sans-serif;color:var(--acc);letter-spacing:-.02em}
+.sure.long{font-size:18px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:6px;background:var(--acc);border-radius:3px}
+.meta{display:grid;gap:4px;font-size:14px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:600}
+.meta .crit{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:help}
+.meta a{text-decoration:none;color:var(--ink);font-weight:600}
+.meta a:hover{text-decoration:underline}
+.seal{display:flex;flex-wrap:wrap;gap:6px 12px;font:600 12px 'JetBrains Mono',monospace;color:var(--muted);padding-top:10px;border-top:1px dashed var(--line)}
+.seal .ok{color:var(--acc)}
+.seal .warn{color:var(--due)}
+.seal .bad{color:var(--bad)}
+.outcome{padding:10px 12px;border-radius:12px;background:#0f0f0e;border:1px solid var(--line);font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.btn{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:20px;font-weight:700;font-size:14px;text-decoration:none;border:1px solid var(--line)}
+.btn.primary{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.btn:hover{border-color:var(--acc)}
+.empty{padding:48px;border:1px dashed var(--line);border-radius:22px;text-align:center;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:16px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num{font:700 18px 'Space Grotesk',sans-serif}
+td .sub{display:block;font-size:12px;color:var(--muted);font-weight:500;font-family:Inter,sans-serif}
+.rank{font:700 22px 'Space Grotesk',sans-serif;color:var(--acc);width:44px}
+.board{padding:28px 0 90px}
+.note{margin:18px 0 0;color:var(--muted);font-size:14px;max-width:760px}
+.filters-toggle{display:none}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes rise{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:860px){
+  .wrap{padding:0 18px}
+  h1{font-size:52px}
+  .layout{grid-template-columns:1fr;gap:16px}
+  aside{position:static}
+  .filters-toggle{display:inline-flex}
+  aside[data-open="false"] .group,aside[data-open="false"] .clear{display:none}
+  .hide-sm{display:none}
+  .hero{padding:22px 0 30px}
+  .lede{font-size:17px}
+  .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .stat{min-width:0;padding:10px 12px}
+  .stat b{font-size:26px}
+  .stat span{font-size:12px}
+  nav .links{gap:6px 18px;font-size:14px}
+  .cta{min-height:38px;padding:0 14px}
+  .next{margin-top:18px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="/">Blyggi</a>
+      <div class="links">
+        <a href="/#how">How it works</a>
+        <a href="/explore/" aria-current="page">Explore</a>
+        <a href="/record/?blyg=caseyjr.org/blyg">Track records</a>
+        <a class="cta" href="/new/">Make a claim</a>
+      </div>
+    </nav>
+  </div>
+</header>
+<section class="hero">
+  <div class="wrap">
+    <span class="kicker"><i></i>Read from public blygs</span>
+    <h1>Every claim,<br>on the record.</h1>
+    <p class="lede">What people said would happen, how sure they were, when it comes due and how it turned out. Pinned on their own blygs, so nobody can quietly change their mind.</p>
+    <div class="stats" id="stats"></div>
+    <p class="fresh" id="fresh"></p>
+    <div class="next" id="next" aria-label="Coming due next"></div>
+  </div>
+</section>
+<main class="wrap">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-claims" aria-selected="true" aria-controls="claims">Claims</button>
+    <button role="tab" id="tab-board" aria-selected="false" aria-controls="board">Track records</button>
+  </div>
+  <section id="claims" role="tabpanel" aria-labelledby="tab-claims">
+    <div class="layout">
+      <aside id="filters" data-open="false" aria-label="Filters">
+        <input class="search" id="q" type="search" placeholder="Search claims" aria-label="Search claims">
+        <button class="chip filters-toggle" id="toggle" aria-expanded="false" aria-controls="filters">Filters</button>
+        <div class="group"><h3>Status</h3><div class="chips" data-f="status"></div></div>
+        <div class="group"><h3>Topic</h3><div class="chips" data-f="topic"></div></div>
+        <div class="group"><h3>Kind</h3><div class="chips" data-f="kind"></div></div>
+        <div class="group"><h3>Decided by</h3><div class="chips" data-f="decided"></div></div>
+        <div class="group"><h3>Blyg</h3><select id="blyg" aria-label="Blyg"><option value="">All blygs</option></select></div>
+        <div class="group"><h3>Sort</h3><select id="sort" aria-label="Sort">
+          <option value="due">Coming due first</option>
+          <option value="new">Newest pinned</option>
+          <option value="bold">Boldest (most confident)</option>
+          <option value="far">Furthest out</option>
+        </select></div>
+        <button class="clear" id="clear">Clear filters</button>
+      </aside>
+      <div>
+        <p class="count" id="count" aria-live="polite"></p>
+        <div class="cards" id="cards"></div>
+      </div>
+    </div>
+  </section>
+  <section id="board" role="tabpanel" aria-labelledby="tab-board" hidden>
+    <div class="board" id="boardBody"></div>
+  </section>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+  const fmt = (d) => { const t = new Date(d + 'T00:00:00Z'); return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
+  const days = (d) => Math.round((new Date(d + 'T00:00:00Z') - today) / 864e5);
+  const until = (d) => { const n = days(d); return isNaN(n) ? '' : n === 0 ? 'today' : n === 1 ? 'tomorrow' : n > 0 ? (n < 60 ? `in ${n} days` : n < 730 ? `in ${Math.round(n / 30.4)} months` : `in ${Math.round(n / 365)} years`) : n === -1 ? 'yesterday' : `${-n} days ago`; };
+  const ago = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 6e4); return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} hours ago` : `${Math.round(m / 1440)} days ago`; };
+  const host = (o) => o.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+  const KIND = { binary: 'Yes or no', one: 'Pick one', set: 'Which make it', order: 'Ranking', quantity: 'A number', record: 'Just recorded' };
+  const STATUS = { open: 'Open', due: 'Due', resolved: 'Resolved', void: 'Void', record: 'On record', withdrawn: 'Withdrawn' };
+  const DECIDED = { automatic: 'Data', record: 'Official record', judgment: 'Named judges', author: 'The author' };
+  const kindOf = (c) => c.shape === 'choice' ? (c.pick || 'one') : c.shape;
+  const SHAPE_Q = { binary: ['binary', ''], one: ['choice', 'one'], set: ['choice', 'set'], order: ['choice', 'order'], quantity: ['quantity', ''], record: ['record', ''] };
+
+  const F = { status: new Set(), topic: new Set(), kind: new Set(), decided: new Set(), blyg: '', q: '', sort: 'due' };
+  let DATA = null;
+
+  const readUrl = () => {
+    const p = new URLSearchParams(location.search);
+    for (const k of ['status', 'topic', 'kind', 'decided']) F[k] = new Set((p.get(k) || '').split(',').filter(Boolean));
+    F.blyg = p.get('blyg') || ''; F.q = p.get('q') || ''; F.sort = p.get('sort') || 'due';
+    if (p.get('tab') === 'records') tab('board');
+  };
+  const writeUrl = () => {
+    const p = new URLSearchParams();
+    for (const k of ['status', 'topic', 'kind', 'decided']) if (F[k].size) p.set(k, [...F[k]].join(','));
+    if (F.blyg) p.set('blyg', F.blyg);
+    if (F.q) p.set('q', F.q);
+    if (F.sort !== 'due') p.set('sort', F.sort);
+    if (!$('board').hidden) p.set('tab', 'records');
+    const s = p.toString();
+    history.replaceState(null, '', location.pathname + (s ? '?' + s : ''));
+  };
+
+  const pass = (c, skip) => {
+    if (skip !== 'status' && F.status.size && !F.status.has(c.status)) return false;
+    if (skip !== 'topic' && F.topic.size && !c.topics.some((t) => F.topic.has(t))) return false;
+    if (skip !== 'kind' && F.kind.size && !F.kind.has(kindOf(c))) return false;
+    if (skip !== 'decided' && F.decided.size && !F.decided.has(c.decidedBy)) return false;
+    if (F.blyg && c.origin !== F.blyg) return false;
+    if (F.q && !(c.claim + ' ' + c.blyg + ' ' + c.check).toLowerCase().includes(F.q.toLowerCase())) return false;
+    return true;
+  };
+  const conf = (c) => { const m = /(\d+)%/.exec(c.sure); if (!m) return 0; const p = +m[1] / 100; return Math.max(p, 1 - p); };
+  const SORTS = {
+    due: (a, b) => (a.resolved - b.resolved) || a.by.localeCompare(b.by),
+    new: (a, b) => (b.pinnedAt || '').localeCompare(a.pinnedAt || ''),
+    bold: (a, b) => conf(b) - conf(a),
+    far: (a, b) => b.by.localeCompare(a.by),
+  };
+
+  const chips = (key, labels, values) => {
+    const box = document.querySelector(`[data-f="${key}"]`);
+    const counts = {};
+    for (const c of DATA.claims) if (pass(c, key)) for (const v of values(c)) counts[v] = (counts[v] || 0) + 1;
+    const keys = Object.keys(labels || counts).filter((k) => counts[k] || F[key].has(k));
+    keys.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+    box.innerHTML = keys.map((k) => `<button class="chip" data-k="${esc(k)}" aria-pressed="${F[key].has(k)}">${esc(labels ? labels[k] : k)} <small>${counts[k] || 0}</small></button>`).join('') || '<span class="count">None</span>';
+    box.querySelectorAll('button').forEach((b) => b.onclick = () => { F[key].has(b.dataset.k) ? F[key].delete(b.dataset.k) : F[key].add(b.dataset.k); render(); });
+  };
+
+  const card = (c, i) => {
+    const k = kindOf(c);
+    const p = /^(\d+)%$/.exec(c.sure);
+    const [shape, pick] = SHAPE_Q[k] || ['binary', ''];
+    const again = `/new/?${new URLSearchParams({ q: c.claim, shape, ...(pick ? { pick } : {}) })}`;
+    const seal = c.pinned
+      ? `<span class="ok">● Pinned v${c.pinnedVersion}${c.pinnedAt ? ' · ' + esc(fmt(c.pinnedAt.slice(0, 10))) : ''}</span>${c.hashOk ? '<span class="ok">Hash ✓</span>' : '<span class="bad">Hash doesn\'t match</span>'}${c.changed ? '<span class="bad">Edited after pinning; the pinned version counts</span>' : ''}`
+      : '<span class="warn">○ Not pinned yet: the author can still change it</span>';
+    return `<article class="card" style="animation-delay:${Math.min(i, 12) * 30}ms">
+      <div class="row"><span class="badge ${c.status}">${STATUS[c.status]}</span>${c.topics.map((t) => `<button class="tag" data-topic="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+      <p class="stmt">${esc(c.claim)}</p>
+      <div><div class="sure${c.sure.length > 12 ? ' long' : ''}">${esc(c.sure)}</div>${p ? `<div class="bar" aria-hidden="true"><i style="width:${p[1]}%"></i></div>` : ''}</div>
+      <div class="meta">
+        <span><a href="/record/?blyg=${encodeURIComponent(host(c.origin))}" title="Track record">${esc(c.blyg)}</a> · ${esc(KIND[k] || k)}</span>
+        <span>${c.status === 'record' ? 'Recorded' : 'Due'} <b>${esc(fmt(c.by))}</b>${c.resolved ? '' : ' · ' + esc(until(c.by))}</span>
+        <span class="crit" title="${esc(c.check)}">Checked by: ${esc(c.check)}</span>
+      </div>
+      ${c.outcome ? `<div class="outcome"><b>Outcome:</b> ${esc(c.outcome)}${c.brier != null ? ` · Brier ${c.brier.toFixed(3)}` : ''}</div>` : ''}
+      <div class="seal">${seal}</div>
+      <div class="actions"><a class="btn" href="${esc(c.page)}">Read it</a>${c.resolved ? '' : `<a class="btn primary" href="${esc(again)}">Forecast this too</a>`}</div>
+    </article>`;
+  };
+
+  const render = () => {
+    const shown = DATA.claims.filter((c) => pass(c)).sort(SORTS[F.sort] || SORTS.due);
+    chips('status', STATUS, (c) => [c.status]);
+    chips('topic', null, (c) => c.topics);
+    chips('kind', KIND, (c) => [kindOf(c)]);
+    chips('decided', DECIDED, (c) => [c.decidedBy]);
+    $('count').textContent = `${shown.length} of ${DATA.claims.length} claims`;
+    $('cards').innerHTML = shown.length ? shown.map(card).join('') : '<div class="empty">No claims match. <button class="clear" onclick="document.getElementById(\'clear\').click()">Clear filters</button></div>';
+    $('cards').querySelectorAll('[data-topic]').forEach((b) => b.onclick = () => { F.topic = new Set([b.dataset.topic]); render(); scrollTo({ top: $('claims').offsetTop - 10, behavior: 'smooth' }); });
+    $('blyg').value = F.blyg; $('sort').value = F.sort; if ($('q').value !== F.q) $('q').value = F.q;
+    writeUrl();
+  };
+
+  const board = () => {
+    const rows = [...DATA.blygs].sort((a, b) => (b.forecasts - a.forecasts) || ((a.brier ?? 9) - (b.brier ?? 9)) || (b.claims - a.claims));
+    const anyScored = rows.some((r) => r.brier != null);
+    const firstDue = DATA.claims.filter((c) => c.status === 'open' || c.status === 'due').map((c) => c.by).sort()[0];
+    $('boardBody').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Blyg</th><th>Claims</th><th class="hide-sm">Pinned</th><th>Resolved</th><th>Brier</th><th class="hide-sm"></th></tr></thead>
+        <tbody>${rows.map((r, i) => `<tr>
+          <td class="rank">${i + 1}</td>
+          <td><a href="/record/?blyg=${encodeURIComponent(host(r.origin))}" style="font-weight:700;text-decoration:none">${esc(r.blyg)}</a><span class="sub">${esc(host(r.origin))}</span></td>
+          <td class="num">${r.claims}</td>
+          <td class="num hide-sm">${r.claims ? Math.round(100 * r.pinned / r.claims) : 0}%<span class="sub">${r.pinned} pinned</span></td>
+          <td class="num">${r.resolved}</td>
+          <td class="num">${r.brier != null ? r.brier.toFixed(3) : '—'}<span class="sub">${r.brier != null ? `${r.forecasts} forecasts` : 'nothing scored yet'}</span></td>
+          <td class="hide-sm"><a class="btn" href="/explore/?blyg=${encodeURIComponent(r.origin)}">Their claims</a></td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <p class="note">${anyScored ? 'Ranked by how many forecasts have been scored, then by Brier score (lower is better; always guessing 50% scores 0.250).' : `Nobody has been scored yet: the first claim comes due ${firstDue ? esc(fmt(firstDue)) : 'soon'}. Rankings start when claims resolve.`} Only the earliest pinned version of each claim counts. Rankings, ranges and probabilities are scored separately; full detail is on each track record.</p>`;
+  };
+
+  const tab = (which) => {
+    const claims = which !== 'board';
+    $('claims').hidden = !claims; $('board').hidden = claims;
+    $('tab-claims').setAttribute('aria-selected', claims); $('tab-board').setAttribute('aria-selected', !claims);
+    if (DATA) writeUrl();
+  };
+  $('tab-claims').onclick = () => tab('claims');
+  $('tab-board').onclick = () => tab('board');
+  $('q').oninput = (e) => { F.q = e.target.value.trim(); render(); };
+  $('blyg').onchange = (e) => { F.blyg = e.target.value; render(); };
+  $('sort').onchange = (e) => { F.sort = e.target.value; render(); };
+  $('clear').onclick = () => { for (const k of ['status', 'topic', 'kind', 'decided']) F[k].clear(); F.blyg = ''; F.q = ''; render(); };
+  $('toggle').onclick = () => { const f = $('filters'), open = f.dataset.open !== 'true'; f.dataset.open = open; $('toggle').setAttribute('aria-expanded', open); };
+
+  fetch('/claims.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((d) => {
+    if (!d || !Array.isArray(d.claims) || !Array.isArray(d.blygs)) throw new Error('old format');
+    DATA = d;
+    const n = (s) => d.claims.filter((c) => c.status === s).length;
+    $('stats').innerHTML = [
+      [d.claims.length, 'claims'], [d.blygs.length, d.blygs.length === 1 ? 'blyg with claims' : 'blygs with claims'],
+      [n('open'), 'open'], [n('due'), 'due now', 'due'], [n('resolved') + n('void'), 'resolved'],
+    ].map(([v, l, cls]) => `<div class="stat ${cls || ''}"><b>${v}</b><span>${l}</span></div>`).join('');
+    $('fresh').textContent = `Read ${d.scanned} blygs ${ago(d.at)}. Refreshed every six hours.`;
+    const soon = d.claims.filter((c) => c.status === 'open' || c.status === 'due').sort((a, b) => a.by.localeCompare(b.by)).slice(0, 3);
+    $('next').innerHTML = soon.map((c) => `<a href="${esc(c.page)}"><span class="when">${c.status === 'due' ? 'Due now' : 'Due ' + esc(until(c.by))} · ${esc(c.sure)}</span><span class="what">${esc(c.claim)}</span></a>`).join('');
+    const blygs = [...new Set(d.claims.map((c) => c.origin))];
+    $('blyg').innerHTML += blygs.map((o) => `<option value="${esc(o)}">${esc(d.claims.find((c) => c.origin === o).blyg)}</option>`).join('');
+    readUrl();
+    render();
+    board();
+  }).catch(() => {
+    $('cards').innerHTML = '<div class="empty">The claim list isn\'t available right now. Try again in a minute.</div>';
+  });
+})();
+</script>
+</body>
+</html>
