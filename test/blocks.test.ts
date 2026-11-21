@@ -40,3 +40,14 @@ test('into an empty post, the statement comes first', () => {
   assert.deepEqual([start, end], [0, 0]);
   assert.equal(insert, `It rains tomorrow\n\n${fenced(claim)}\n`);
 });
+
+test('reads the claim and resolution back out of rendered HTML', async () => {
+  const { fromHtml } = await import('../extension/ui/blocks.ts');
+  const html = '<p>Alabama wins.</p>\n<pre><code class="language-claim">{\n  &quot;claim&quot;: &quot;Alabama wins &amp; &lt;b&gt;more&lt;/b&gt;&quot;,\n  &quot;resolves_by&quot;: &quot;2026-11-29&quot;,\n  &quot;probability&quot;: 0.65\n}\n</code></pre>\n<pre><code class="language-resolution">{&quot;outcome&quot;: true, &quot;resolved_at&quot;: &quot;2026-11-30&quot;}\n</code></pre>';
+  const got = fromHtml(html)!;
+  assert.equal(got.claim.claim, 'Alabama wins & <b>more</b>');
+  assert.equal(got.claim.probability, 0.65);
+  assert.equal(got.resolution?.outcome, true);
+  assert.equal(fromHtml('<pre><code class="language-js">let x = 1</code></pre>'), null);
+  assert.equal(fromHtml('<p>no code</p>'), null);
+});

@@ -3,7 +3,7 @@
 
 import { findFences } from './core/fences.ts';
 import { parseContent } from './core/parse.ts';
-import type { ClaimBlock } from './core/types.ts';
+import type { ClaimBlock, ResolutionBlock } from './core/types.ts';
 
 export interface FoundClaim {
   claim: ClaimBlock;
@@ -44,4 +44,32 @@ export function placeNew(text: string, selection: { start: number; end: number }
   // The last paragraph: the block ends the post, replacing any trailing whitespace.
   const start = text.replace(/\s+$/, '').length;
   return { start, end: text.length, insert: (start === 0 ? '' : '\n\n') + body + '\n' };
+}
+
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+function decode(s: string): string {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+    if (e[0] === '#') {
+      const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+    }
+    return ENTITIES[e.toLowerCase()] ?? m;
+  });
+}
+
+/**
+ * The claim and resolution in a published entry, read from its HTML (the
+ * reading view has no Markdown). Code blocks are rebuilt as fences and go
+ * through the same parser, so the same blocks count as on any other reader.
+ */
+export function fromHtml(html: string): { claim: ClaimBlock; resolution: ResolutionBlock | null } | null {
+  const fences: string[] = [];
+  for (const m of html.matchAll(/<pre[^>]*>\s*<code(?:\s+class="language-([\w-]+)")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi)) {
+    fences.push(`\`\`\`${m[1] ?? ''}\n${decode(m[2]).replace(/\n$/, '')}\n\`\`\``);
+  }
+  if (!fences.length) return null;
+  const parsed = parseContent(fences.join('\n\n'));
+  const claim = parsed.claims[0]?.value;
+  return claim ? { claim, resolution: parsed.resolutions[0]?.value ?? null } : null;
 }

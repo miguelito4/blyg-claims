@@ -68,7 +68,7 @@ For each blyg: Brier score, log score, a calibration chart (stated probability a
 | `schema/` | JSON Schemas for `claim` and `resolution` blocks |
 | `src/` | Fetcher, parser and scorer (TypeScript, Node 22, no runtime dependencies) |
 | `blyg-claims` CLI | `npx blyg-claims score https://caseyjr.org/blyg/` → JSON and a static HTML report |
-| `extension/` | **Claims**, a browser-only Blygger Studio extension: a claim bar in the editor that inserts a checkable claim and reopens it for editing. Vendor it with `npm run ext:add`; see [`extension/README.md`](extension/README.md) |
+| `extension/` | **Claims**, a browser-only Blygger Studio extension: a claim bar in the editor, a badge on posts with claims, pinning and resolving, and a Claims page with your score. Vendor it with `npm run ext:add`; see [`extension/README.md`](extension/README.md) |
 
 ## Prior discussion
 

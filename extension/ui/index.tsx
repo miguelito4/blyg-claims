@@ -1,13 +1,21 @@
 /*
- * claims: a claim bar in the composer and the full editor. "+ claim" opens a
- * form that asks plain questions (what will happen, how sure, by when, how
- * anyone will check) and inserts a `claim` block, the format blyggi.com and
- * blyg-claims read and score. With a claim already in the post, the bar shows
- * it in a few words and opens it for editing. Selected words become the
- * claim's statement and stay in the post as its prose.
+ * claims: forecasts anyone can check.
  *
- * Browser only: it reads nothing but the editor's text, makes no network
- * requests and writes only through the bar's insert and replace.
+ * - Editor bar: "+ claim" opens a form that asks plain questions (what will
+ *   happen, how sure, by when, how anyone will check) and inserts a `claim`
+ *   block, the format blyggi.com and blyg-claims read and score. With a claim
+ *   in the post, the bar shows it in a few words and opens it for editing.
+ * - Reading byline: a badge on entries with a claim (how sure, when it's due,
+ *   pinned or not), opening a sheet with the claim. On your own: pin it, and
+ *   resolve it (append a `resolution` block, publish, pin). On others':
+ *   "forecast this too" opens a draft with a copy of the claim.
+ * - A Claims page (under More): your claims by what needs doing, with your
+ *   score, computed on each claim as first pinned.
+ *
+ * Browser only, no network requests of its own. It reads claims from entries'
+ * HTML, and your own items through the SDK for their pins. It writes only
+ * through the editor bar, and, when you press pin or publish resolution,
+ * through updateItem, publishItem and pinItem on that one item.
  * Source: https://github.com/miguelito4/blyg-claims (extension/).
  */
 import { toast } from '../../../src/ui/extension-api.ts';
@@ -15,6 +23,8 @@ import type { EditorBarContext, StudioExtension } from '../../../src/ui/extensio
 import { fromClaim, sureOf, type Draft } from './core/compose.ts';
 import { fenced, findClaim, placeNew } from './blocks.ts';
 import { ClaimSheet } from './claim-sheet.tsx';
+import { ClaimBadge, claimActions } from './reading.tsx';
+import { ClaimsPage } from './page.tsx';
 import './claims.css';
 
 const date = (d: string) => {
@@ -66,6 +76,9 @@ function ClaimBar({ context }: { context: EditorBarContext }) {
 export const extension: StudioExtension = {
   name: 'claims',
   label: 'Claims',
-  description: 'Adds a claim bar to the editor: answer a few plain questions and it inserts a forecast anyone can check and score.',
+  description: 'Forecasts anyone can check: a claim bar in the editor, a badge on posts with a claim, pinning and resolving from the post, and a Claims page with your score.',
   editorBar: { label: 'Claims', row: 'above', blocks: 2, component: ClaimBar },
+  entryByline: ClaimBadge,
+  entryActions: claimActions,
+  page: { title: 'Claims', component: ClaimsPage },
 };
