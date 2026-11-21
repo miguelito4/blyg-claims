@@ -1,12 +1,12 @@
 // The composer: plain questions in, a checkable claim out. The engineering
 // (shapes, oracles, JSON) is built from the answers and only shown on request.
 
-import { mistakes, toClaim, toMarkdown, withCatchAll, providerName, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
+import { mistakes, toClaim, toMarkdown, withCatchAll, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
 import { resolvesBy, type Check } from '../extension/ui/core/check.ts';
 import { SOMETHING_ELSE, type Pick, type Shape } from '../extension/ui/core/shapes.ts';
 import { connect, disconnect, findBlyg, finishConnect, savedConnection, type Connection } from './oauth.ts';
 import { publishClaim, type Published } from './studio.ts';
-import { INDICATORS, PROVIDER_HOME, latest, type Indicator, type Reading } from './sources.ts';
+import { INDICATORS, PUBLISHERS, REGISTERS, grouped, latest, type Indicator, type Reading } from './sources.ts';
 
 type Kind = 'blyg' | 'data_series' | 'record' | 'web_data' | 'judgment';
 
@@ -32,7 +32,8 @@ const S = {
   op: '>' as string,
   threshold: '',
   indicator: '0',
-  provider: 'fred' as Indicator['provider'],
+  freq: 'monthly' as Indicator['frequency'],
+  provider: 'owid',
   series: '',
   period: '',
   registry: 'arxiv',
@@ -65,9 +66,12 @@ function indicator(): Indicator | null {
   return S.indicator === 'custom' ? null : INDICATORS[Number(S.indicator)] ?? null;
 }
 
+function frequency(): Indicator['frequency'] {
+  return indicator()?.frequency ?? S.freq;
+}
+
 function periodDate(): string {
-  const ind = indicator();
-  const f = ind?.frequency ?? 'monthly';
+  const f = frequency();
   if (!S.period) return '';
   return f === 'annual' ? `${S.period.slice(0, 4)}-01-01` : `${S.period.slice(0, 7)}-01`;
 }
@@ -125,7 +129,7 @@ function problems(): Mistake[] {
   return mistakes(draft(), {
     today,
     latest: reading ?? undefined,
-    frequency: S.kind === 'data_series' ? indicator()?.frequency : undefined,
+    frequency: S.kind === 'data_series' ? frequency() : undefined,
   });
 }
 
@@ -183,8 +187,8 @@ function stepHow(): string {
   if (S.shape === 'record') return '';
   const kinds = `<div class="grid2">
     ${choiceCard('kind', 'blyg', S.kind, 'Blygger shows it', 'Claims, items and pins on blygs.')}
-    ${choiceCard('kind', 'data_series', S.kind, 'A published statistic', 'FRED, World Bank, Our World in Data, BIS.')}
-    ${choiceCard('kind', 'record', S.kind, 'An official record shows it', 'A bill, a filing, a paper, a ruling.')}
+    ${choiceCard('kind', 'data_series', S.kind, 'A published statistic', 'From Our World in Data, the World Bank, the IMF, Eurostat, the WHO and others.')}
+    ${choiceCard('kind', 'record', S.kind, 'An official record shows it', 'A law, a filing, a paper, a trial, a patent, a ruling.')}
     ${choiceCard('kind', 'web_data', S.kind, 'A number on a web page', 'A field in a public JSON file.')}
     ${choiceCard('kind', 'judgment', S.kind, 'Someone decides', 'When nothing can check it automatically.')}
   </div>`;
@@ -198,25 +202,28 @@ function stepHow(): string {
   }
   if (S.kind === 'data_series') {
     const ind = indicator();
-    const prov = ind ? ind.provider : S.provider;
-    fields = `<label>Which statistic? <select data-set="indicator">${INDICATORS.map((x, i) => `<option value="${i}"${S.indicator === String(i) ? ' selected' : ''}>${h(x.name)} (${h(providerName(x.provider).replace(/^the /, ''))})</option>`).join('')}
-        <option value="custom"${S.indicator === 'custom' ? ' selected' : ''}>Another series…</option></select></label>
-      ${ind ? `<p class="source"><a href="${h(ind.url)}" target="_blank" rel="noopener">Open on ${h(PROVIDER_HOME[ind.provider].name)} ↗</a> · ${ind.frequency} · ${h(ind.unit)}
+    const pub = PUBLISHERS[ind ? ind.provider : S.provider];
+    const places = [...new Set(INDICATORS.map((x) => x.where))];
+    fields = `<label>Which statistic? <select data-set="indicator">${places.map((w) => `<optgroup label="${h(w)}">${INDICATORS.map((x, i) => (x.where === w ? `<option value="${i}"${S.indicator === String(i) ? ' selected' : ''}>${h(x.name)} (${h(PUBLISHERS[x.provider].name)})</option>` : '')).join('')}</optgroup>`).join('')}
+        <option value="custom"${S.indicator === 'custom' ? ' selected' : ''}>Another series, from any publisher…</option></select></label>
+      ${ind ? `<p class="source"><a href="${h(ind.url)}" target="_blank" rel="noopener">Open on ${h(pub.name)} ↗</a> · ${ind.frequency} · ${h(ind.unit)}
           ${readingState === 'loading' ? ' · reading…' : reading ? ` · <b>Latest: ${h(reading.value)} (${h(reading.period)})</b>` : readingState === 'none' ? ' · open the link to see the latest value' : ''}</p>`
-        : `<div class="row"><label>Publisher <select data-set="provider">${(Object.keys(PROVIDER_HOME) as Indicator['provider'][]).map((p) => `<option value="${p}"${S.provider === p ? ' selected' : ''}>${h(PROVIDER_HOME[p].name)}</option>`).join('')}</select></label>
-          <label>Series <input type="text" data-bind="series" value="${h(S.series)}" placeholder="${h(PROVIDER_HOME[prov].hint)}"></label></div>
-          <p class="source">Find it on <a href="${h(PROVIDER_HOME[prov].url)}" target="_blank" rel="noopener">${h(PROVIDER_HOME[prov].name)} ↗</a>, then paste its ID.</p>`}
-      <label>For which period? ${(ind?.frequency ?? 'monthly') === 'annual'
+        : `<label>Publisher <select data-set="provider">${grouped(PUBLISHERS).map(([g, xs]) => `<optgroup label="${h(g)}">${xs.map(([k, x]) => `<option value="${k}"${S.provider === k ? ' selected' : ''}>${h(x.name)} (${h(x.covers)})</option>`).join('')}</optgroup>`).join('')}</select></label>
+          <p class="source">Find the series on <a href="${h(pub.url)}" target="_blank" rel="noopener">${h(pub.name)} ↗</a>, then paste it below.</p>
+          <label>Series <input type="text" data-bind="series" value="${h(S.series)}" placeholder="${h(pub.hint)}"></label>
+          <label>How often is it published? <select data-set="freq">${(['monthly', 'quarterly', 'annual'] as const).map((f) => `<option value="${f}"${S.freq === f ? ' selected' : ''}>${f}</option>`).join('')}</select></label>`}
+      <label>For which period? ${frequency() === 'annual'
         ? `<input type="number" min="1990" max="2100" data-bind="period" value="${h(S.period.slice(0, 4))}" placeholder="2027" class="short">`
         : `<input type="month" data-bind="period" value="${h(S.period.slice(0, 7))}">`}</label>
       ${compareFields(ind?.unit)}
       <p class="hint">The numbers are read as they were published on your date, so later revisions don't change the answer.</p>`;
   }
   if (S.kind === 'record') {
-    const regs: [string, string][] = [['congress', 'congress.gov (bills)'], ['sec', 'SEC EDGAR (filings)'], ['arxiv', 'arXiv (papers)'], ['courtlistener', 'CourtListener (court cases)'], ['other', 'Another official register']];
-    fields = `<label>Where is it recorded? <select data-set="registry">${regs.map(([v, l]) => `<option value="${v}"${S.registry === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
-      <label>Which record? <input type="text" data-bind="recordId" value="${h(S.recordId)}" placeholder="its ID or address"></label>
-      <label>What has to appear in it? <input type="text" data-bind="event" value="${h(S.event)}" placeholder="e.g. became law"></label>`;
+    const reg = REGISTERS[S.registry];
+    fields = `<label>Where is it recorded? <select data-set="registry">${grouped(REGISTERS).map(([g, xs]) => `<optgroup label="${h(g)}">${xs.map(([k, x]) => `<option value="${k}"${S.registry === k ? ' selected' : ''}>${h(x.name)} (${h(x.covers)})</option>`).join('')}</optgroup>`).join('')}</select></label>
+      ${reg?.url ? `<p class="source">Find it on <a href="${h(reg.url)}" target="_blank" rel="noopener">${h(reg.name)} ↗</a></p>` : ''}
+      <label>Which record? <input type="text" data-bind="recordId" value="${h(S.recordId)}" placeholder="${h(reg?.hint ?? 'its ID or address')}"></label>
+      <label>What has to appear in it? <input type="text" data-bind="event" value="${h(S.event)}" placeholder="e.g. adopted, became law, approved, granted, judgment delivered"></label>`;
   }
   if (S.kind === 'web_data') {
     fields = `<label>Address of the data <input type="url" data-bind="url" value="${h(S.url)}" placeholder="https://…/data.json"></label>
@@ -374,7 +381,7 @@ app.addEventListener('change', (e) => {
   const t = e.target as HTMLInputElement;
   if (t.dataset.set) {
     (S as Record<string, unknown>)[t.dataset.set] = t.value;
-    if (t.dataset.set === 'indicator' || t.dataset.set === 'kind') {
+    if (t.dataset.set === 'indicator' || t.dataset.set === 'kind' || t.dataset.set === 'freq') {
       S.period = '';
       void loadReading();
     }

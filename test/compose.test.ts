@@ -73,3 +73,13 @@ test('vague words are flagged, not blocked', () => {
   const w = m.find((x) => /means different things/.test(x.message));
   assert.equal(w?.level, 'warn');
 });
+
+test('every publisher and register the schema allows has a name, in the core and on the page', async () => {
+  const { PROVIDERS, REGISTRIES } = await import('../extension/ui/core/check.ts');
+  const { NAMED } = await import('../extension/ui/core/compose.ts');
+  const { PUBLISHERS, REGISTERS } = await import('../web/sources.ts');
+  assert.deepEqual([...PROVIDERS].sort(), [...NAMED.providers].sort());
+  assert.deepEqual([...PROVIDERS].sort(), Object.keys(PUBLISHERS).sort());
+  assert.deepEqual([...REGISTRIES].sort(), [...NAMED.registries].sort());
+  assert.deepEqual([...REGISTRIES].sort(), Object.keys(REGISTERS).sort());
+});

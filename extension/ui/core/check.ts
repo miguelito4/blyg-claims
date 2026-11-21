@@ -8,8 +8,18 @@
 // statistics, the authority that keeps a record, an unversioned web document,
 // or people.
 export const ORACLES = ['blyg', 'data_series', 'record', 'web_data', 'judgment'] as const;
-export const PROVIDERS = ['fred', 'worldbank', 'owid', 'bis'] as const;
-export const REGISTRIES = ['congress', 'sec', 'arxiv', 'courtlistener', 'other'] as const;
+export const PROVIDERS = [
+  'owid', 'worldbank', 'un', 'imf', 'oecd', 'bis', 'ecb', 'eurostat', 'ons', 'fred',
+  'who', 'ilo', 'fao', 'unhcr', 'noaa', 'copernicus', 'ember', 'other',
+] as const;
+export const REGISTRIES = [
+  'eurlex', 'legislation_uk', 'uk_bills', 'congress',
+  'companies_house', 'sec',
+  'doi', 'arxiv', 'pubmed', 'who_ictrp', 'clinicaltrials', 'ema', 'fda',
+  'espacenet', 'wipo', 'uspto',
+  'icj', 'curia', 'bailii', 'courtlistener',
+  'github', 'other',
+] as const;
 export type OracleType = (typeof ORACLES)[number];
 export const OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
 export type Op = (typeof OPS)[number];

@@ -301,12 +301,26 @@
         },
         "provider": {
           "enum": [
-            "fred",
-            "worldbank",
             "owid",
-            "bis"
+            "worldbank",
+            "un",
+            "imf",
+            "oecd",
+            "bis",
+            "ecb",
+            "eurostat",
+            "ons",
+            "fred",
+            "who",
+            "ilo",
+            "fao",
+            "unhcr",
+            "noaa",
+            "copernicus",
+            "ember",
+            "other"
           ],
-          "description": "Who publishes the series: FRED/ALFRED, World Bank, Our World in Data, Bank for International Settlements."
+          "description": "Who publishes the series. Global and regional statistics offices and data publishers; \"other\" for any official office not listed."
         },
         "value": {
           "type": "string",
@@ -353,12 +367,30 @@
         },
         "registry": {
           "enum": [
+            "eurlex",
+            "legislation_uk",
+            "uk_bills",
             "congress",
+            "companies_house",
             "sec",
+            "doi",
             "arxiv",
+            "pubmed",
+            "who_ictrp",
+            "clinicaltrials",
+            "ema",
+            "fda",
+            "espacenet",
+            "wipo",
+            "uspto",
+            "icj",
+            "curia",
+            "bailii",
             "courtlistener",
+            "github",
             "other"
-          ]
+          ],
+          "description": "Who keeps the record: legislatures, company registries, research and medicine registers, patent offices, courts, software; \"other\" for any official register not listed."
         },
         "id": {
           "type": "string",

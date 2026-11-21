@@ -54,13 +54,30 @@ export function words(op: string): string {
   return ({ '>': 'is above', '>=': 'is at least', '<': 'is below', '<=': 'is at most', '==': 'equals', '!=': 'is not' } as Record<string, string>)[op] ?? op;
 }
 
+const PROVIDER_NAMES: Record<string, string> = {
+  owid: 'Our World in Data', worldbank: 'the World Bank', un: 'the UN SDG database', imf: 'the IMF', oecd: 'the OECD', bis: 'the BIS',
+  ecb: 'the European Central Bank', eurostat: 'Eurostat', ons: 'the UK Office for National Statistics', fred: 'FRED',
+  who: 'the WHO Global Health Observatory', ilo: 'ILOSTAT', fao: 'FAOSTAT', unhcr: 'UNHCR', noaa: 'NOAA', copernicus: 'Copernicus', ember: 'Ember',
+  other: 'its official publisher',
+};
+
+const REGISTRY_NAMES: Record<string, string> = {
+  eurlex: 'EUR-Lex', legislation_uk: 'legislation.gov.uk', uk_bills: 'UK Parliament bills', congress: 'congress.gov',
+  companies_house: 'Companies House', sec: 'SEC EDGAR', doi: 'DOI', arxiv: 'arXiv', pubmed: 'PubMed', who_ictrp: 'WHO ICTRP',
+  clinicaltrials: 'ClinicalTrials.gov', ema: 'European Medicines Agency', fda: 'FDA', espacenet: 'Espacenet', wipo: 'WIPO Patentscope',
+  uspto: 'USPTO', icj: 'International Court of Justice', curia: 'Court of Justice of the EU', bailii: 'BAILII', courtlistener: 'CourtListener',
+  github: 'GitHub', other: 'official',
+};
+
 export function providerName(p: string): string {
-  return ({ fred: 'FRED', worldbank: 'the World Bank', owid: 'Our World in Data', bis: 'the BIS' } as Record<string, string>)[p] ?? p;
+  return PROVIDER_NAMES[p] ?? p;
 }
 
 export function registryName(r: string): string {
-  return ({ congress: 'congress.gov', sec: 'SEC EDGAR', arxiv: 'arXiv', courtlistener: 'CourtListener', other: '' } as Record<string, string>)[r] ?? r;
+  return REGISTRY_NAMES[r] ?? r;
 }
+
+export const NAMED = { providers: Object.keys(PROVIDER_NAMES), registries: Object.keys(REGISTRY_NAMES) };
 
 /** The claim block the draft becomes. Only fields the shape uses are written. */
 export function toClaim(d: Draft): ClaimBlock {
