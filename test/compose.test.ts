@@ -79,9 +79,25 @@ test('vague words are flagged, not blocked', () => {
 test('every publisher and register the schema allows has a name, in the core and on the page', async () => {
   const { PROVIDERS, REGISTRIES } = await import('../extension/ui/core/check.ts');
   const { NAMED } = await import('../extension/ui/core/compose.ts');
-  const { PUBLISHERS, REGISTERS } = await import('../web/sources.ts');
+  const { PUBLISHERS, REGISTERS } = await import('../extension/ui/core/sources.ts');
   assert.deepEqual([...PROVIDERS].sort(), [...NAMED.providers].sort());
   assert.deepEqual([...PROVIDERS].sort(), Object.keys(PUBLISHERS).sort());
   assert.deepEqual([...REGISTRIES].sort(), [...NAMED.registries].sort());
   assert.deepEqual([...REGISTRIES].sort(), Object.keys(REGISTERS).sort());
+});
+
+test('a claim block opens back into the answers that made it', async () => {
+  const { fromClaim } = await import('../extension/ui/core/compose.ts');
+  const drafts: Draft[] = [
+    { shape: 'binary', statement: 'Alabama wins this year\'s Iron Bowl', resolvesBy: '2026-11-29', probability: 0.65, check: { oracle: 'judgment', by: 'author' } },
+    { shape: 'choice', pick: 'one', statement: 'Who wins the 2027 Cricket World Cup?', resolvesBy: '2027-11-30', options: [{ label: 'India', percent: 30 }, { label: 'Australia', percent: 25 }, { label: 'Something else', percent: 45 }] },
+    { shape: 'choice', pick: 'order', size: 2, statement: 'Top two', resolvesBy: '2027-05-31', options: [{ label: 'A' }, { label: 'B' }, { label: 'C' }] },
+    { shape: 'quantity', statement: 'Polio cases in 2027', resolvesBy: '2028-03-31', low: 0, high: 60, unit: 'cases', confidence: 0.8,
+      check: { oracle: 'data_series', provider: 'who', value: 'WPV1@2027-01-01', as_of: '2028-03-31' } },
+    { shape: 'record', statement: 'Remote work will look like a mistake by 2035', resolvesBy: '2035-12-31', voidsIf: 'nothing' },
+  ];
+  for (const d of drafts) {
+    const claim = toClaim(d);
+    assert.deepEqual(toClaim(fromClaim(claim)), claim, d.statement);
+  }
 });

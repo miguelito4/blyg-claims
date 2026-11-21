@@ -3,7 +3,7 @@
 // tests both use it.
 
 import type { Check } from './check.ts';
-import { SOMETHING_ELSE, type Outcome, type Pick, type Shape } from './shapes.ts';
+import { SOMETHING_ELSE, shapeOf, type Outcome, type Pick, type Shape } from './shapes.ts';
 import type { ClaimBlock } from './types.ts';
 
 export interface Draft {
@@ -106,6 +106,45 @@ export function toClaim(d: Draft): ClaimBlock {
 }
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
+
+const pct = (p: number) => `${Math.round(p * 100)}%`;
+
+/** How sure, in a few words: "65%", "India 30%", "1 Spain · 2 France", "4–8 $T · 80%", "On record". */
+export function sureOf(v: ClaimBlock): string {
+  const shape = shapeOf(v as Record<string, unknown>);
+  if (shape === 'binary') return typeof v.probability === 'number' ? pct(v.probability) : '';
+  if (shape === 'record') return 'On record';
+  if (shape === 'quantity' && Array.isArray(v.range)) return `${v.range[0]}–${v.range[1]}${v.unit ? ` ${v.unit}` : ''} · ${pct(v.confidence ?? 0.8)}`;
+  if (shape === 'choice' && Array.isArray(v.outcomes) && v.outcomes.length) {
+    if (v.pick === 'order' || v.outcomes.every((o) => o.probability === undefined)) return v.outcomes.slice(0, 3).map((o, i) => `${i + 1} ${o.label}`).join(' · ');
+    const top = [...v.outcomes].sort((a, b) => (b.probability ?? 0) - (a.probability ?? 0))[0];
+    return `${top.label} ${pct(top.probability ?? 0)}`;
+  }
+  return '';
+}
+
+/** The answers a claim block came from, so a written claim can be opened and changed. */
+export function fromClaim(c: ClaimBlock): Draft {
+  const shape = shapeOf(c as Record<string, unknown>) ?? 'binary';
+  const d: Draft = { shape, statement: String(c.claim ?? ''), resolvesBy: String(c.resolves_by ?? '') };
+  if (shape === 'binary' && typeof c.probability === 'number') d.probability = c.probability;
+  if (shape === 'choice') {
+    d.pick = c.pick ?? 'one';
+    d.options = (c.outcomes ?? []).map((o) => (typeof o.probability === 'number' ? { label: o.label, percent: Math.round(o.probability * 1000) / 10 } : { label: o.label }));
+    d.rankOnly = d.pick !== 'order' && d.options.every((o) => o.percent === undefined);
+    if (typeof c.size === 'number') d.size = c.size;
+  }
+  if (shape === 'quantity' && Array.isArray(c.range)) {
+    d.low = c.range[0];
+    d.high = c.range[1];
+    d.confidence = c.confidence ?? 0.8;
+    if (c.unit) d.unit = c.unit;
+  }
+  if (c.check) d.check = c.check;
+  if (c.voids_if) d.voidsIf = c.voids_if;
+  if (typeof c.provenance === 'string') d.provenance = c.provenance;
+  return d;
+}
 
 /** The item's Markdown: the statement as prose, then the block. */
 export function toMarkdown(claim: ClaimBlock): string {

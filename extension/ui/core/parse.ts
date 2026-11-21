@@ -72,6 +72,8 @@ export function parseContent(markdown: string): Parsed {
 const PROSE_P = /\bprobability\s*[:=]\s*(\d*\.\d+|\d+(?:\.\d+)?\s*%)/gi;
 
 function proseCheck(markdown: string, claim: Located<ClaimBlock>, issues: Issue[]): void {
+  const p = claim.value.probability;
+  if (typeof p !== 'number') return;
   const fenced = new Set<number>();
   for (const f of findFences(markdown)) for (let l = f.startLine; l <= f.endLine; l++) fenced.add(l);
   const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
@@ -80,7 +82,7 @@ function proseCheck(markdown: string, claim: Located<ClaimBlock>, issues: Issue[
     for (const m of text.matchAll(PROSE_P)) {
       const raw = m[1].replace(/\s/g, '');
       const stated = raw.endsWith('%') ? Number(raw.slice(0, -1)) / 100 : Number(raw);
-      if (Math.abs(stated - claim.value.probability) > 1e-9) {
+      if (Math.abs(stated - p) > 1e-9) {
         issues.push({ level: 'warning', line: i + 1, message: `the prose says probability ${raw}, the claim block says ${claim.value.probability}` });
       }
     }

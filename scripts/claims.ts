@@ -14,7 +14,7 @@ import { collect } from '../src/collect.ts';
 import { parseContent } from '../extension/ui/core/parse.ts';
 import { shapeOf } from '../extension/ui/core/shapes.ts';
 import { resolvesBy } from '../extension/ui/core/check.ts';
-import { describeCheck } from '../extension/ui/core/compose.ts';
+import { describeCheck, sureOf } from '../extension/ui/core/compose.ts';
 import { describeOutcome } from '../extension/ui/core/resolve.ts';
 import { scoreClaim, summarize } from '../extension/ui/core/score.ts';
 import type { ClaimBlock, ResolutionBlock } from '../extension/ui/core/types.ts';
@@ -70,20 +70,7 @@ export interface ExploreBlyg {
   rangeHits: number | null;
 }
 
-const pct = (p: number) => `${Math.round(p * 100)}%`;
-
-export function sure(v: Record<string, any>): string {
-  const shape = shapeOf(v);
-  if (shape === 'binary') return pct(v.probability);
-  if (shape === 'record') return 'On record';
-  if (shape === 'quantity' && Array.isArray(v.range)) return `${v.range[0]}–${v.range[1]}${v.unit ? ` ${v.unit}` : ''} · ${pct(v.confidence ?? 0.8)}`;
-  if (shape === 'choice' && Array.isArray(v.outcomes) && v.outcomes.length) {
-    if (v.pick === 'order' || v.outcomes.every((o: any) => o.probability === undefined)) return v.outcomes.slice(0, 3).map((o: any, i: number) => `${i + 1} ${o.label}`).join(' · ');
-    const top = [...v.outcomes].sort((a: any, b: any) => (b.probability ?? 0) - (a.probability ?? 0))[0];
-    return `${top.label} ${pct(top.probability ?? 0)}`;
-  }
-  return '';
-}
+export const sure = (v: Record<string, any>) => sureOf(v as ClaimBlock);
 
 // Topics are a rough first pass from the words of the claim, so the explorer
 // can be browsed by subject before writers tag anything themselves.
