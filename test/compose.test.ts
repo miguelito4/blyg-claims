@@ -50,8 +50,9 @@ test('mistake: the data will not exist by the date', () => {
     check: { oracle: 'data_series', provider: 'worldbank', value: 'SI.POV.DDAY@2028-01-01', as_of: '2028-12-31', op: '<', threshold: 8 },
   };
   const m = mistakes(annual, { today, latest: { value: 9.9, period: '2022' }, frequency: 'annual' });
-  const stop = m.find((x) => x.level === 'stop');
-  assert.match(stop!.message, /Data for 2028-01-01 is usually published around 2030-02-05, after your date/);
+  const lag = m.find((x) => /Data for/.test(x.message));
+  assert.equal(lag?.level, 'warn', 'a suggestion, not a block');
+  assert.match(lag!.message, /Data for 2028-01-01 is usually published around 2030-02-05, after your date/);
 });
 
 test('mistake: a number that has to be exactly equal', () => {
@@ -59,12 +60,13 @@ test('mistake: a number that has to be exactly equal', () => {
   assert.match(m.map((x) => x.message).join('\n'), /exactly 5/);
 });
 
-test('the obvious ones stop publishing: past date, no statement, no way to know, bad percentages', () => {
+test('only what makes a claim meaningless stops publishing: no statement, past date, bad percentages', () => {
   const m = mistakes({ shape: 'choice', pick: 'one', statement: '', resolvesBy: '2025-01-01', options: [{ label: 'A', percent: 60 }, { label: 'B', percent: 60 }] }, { today });
   const stops = m.filter((x) => x.level === 'stop').map((x) => x.message);
   assert.ok(stops.some((s) => /Say what you think/.test(s)));
   assert.ok(stops.some((s) => /already passed/.test(s)));
-  assert.ok(stops.some((s) => /how we will know/.test(s)));
+  assert.ok(!stops.some((s) => /decided/.test(s)), 'no source is a suggestion, not a block');
+  assert.ok(m.some((x) => x.level === 'warn' && /decide it yourself/.test(x.message)));
   assert.ok(stops.some((s) => /add up to 120%; they should add up to 100%/.test(s)));
 });
 

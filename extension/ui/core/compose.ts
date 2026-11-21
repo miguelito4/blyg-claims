@@ -138,7 +138,8 @@ const LAG_DAYS: Record<string, number> = { daily: 3, weekly: 10, monthly: 45, qu
 
 /**
  * What a careful reader would object to before the claim is published.
- * "stop" blocks publishing; "warn" is shown and the writer decides.
+ * Only what makes a claim meaningless stops publishing: no statement, no
+ * future date, an unusable list or range. Everything else is a suggestion.
  */
 export function mistakes(d: Draft, facts: Facts): Mistake[] {
   const out: Mistake[] = [];
@@ -153,9 +154,9 @@ export function mistakes(d: Draft, facts: Facts): Mistake[] {
     out.push({ level: 'warn', message: `"${vague[0]}" means different things to different people. Say exactly what counts, or let the source decide.` });
   }
 
-  if (d.shape !== 'record' && !d.check) out.push({ level: 'stop', message: 'Say how we will know. If nothing can check it, choose "Someone decides" or "Just record it".' });
+  if (d.shape !== 'record' && !d.check) out.push({ level: 'warn', message: 'Nothing says how this will be decided yet, so you will decide it yourself.' });
   if (d.shape === 'binary' && d.check && d.check.oracle !== 'judgment' && d.check.oracle !== 'record' && !('op' in d.check && d.check.op)) {
-    out.push({ level: 'stop', message: 'Say what the number has to do: rise above, fall below, and by how much.' });
+    out.push({ level: 'warn', message: 'Say what the number has to do (rise above, fall below) so anyone can read the answer off the source.' });
   }
 
   if (d.shape === 'binary' && d.probability !== undefined && (d.probability <= 0.02 || d.probability >= 0.98)) {
@@ -194,7 +195,7 @@ export function mistakes(d: Draft, facts: Facts): Mistake[] {
     if (m) {
       const due = addDays(m[1], LAG_DAYS[facts.frequency] + periodDays(facts.frequency));
       if (due > d.resolvesBy) {
-        out.push({ level: 'stop', message: `Data for ${m[1]} is usually published around ${due}, after your date. Pick ${due} or later.` });
+        out.push({ level: 'warn', message: `Data for ${m[1]} is usually published around ${due}, after your date. Pick ${due} or later.` });
       }
     }
   }

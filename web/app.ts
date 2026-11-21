@@ -25,7 +25,8 @@ const S = {
   high: '',
   unit: '',
   confidence: 80,
-  kind: null as Kind | null,
+  kind: 'judgment' as Kind | null,
+  checkable: false,
   blygMetric: 'blygs_with_claims' as 'blygs_with_claims' | 'item_exists',
   excludeMine: true,
   item: '',
@@ -185,12 +186,19 @@ function compareFields(unit = ''): string {
 
 function stepHow(): string {
   if (S.shape === 'record') return '';
+  if (!S.checkable) {
+    return `<section><h2><span>3</span>How will we know?</h2>
+      <div class="fields quiet"><p><b>You decide</b>, when the date comes, and readers see that you did.</p>
+      <label>Where to look <small class="muted">optional</small><input type="url" data-bind="evidence" value="${h(S.evidence)}" placeholder="the page that will show the answer"></label></div>
+      <button type="button" class="ghost" data-checkable>Make it checkable by strangers →</button>
+      <p class="hint">Point to a statistic, an official record or a blyg, and the answer can be read off the source instead of taken on your word.</p></section>`;
+  }
   const kinds = `<div class="grid2">
     ${choiceCard('kind', 'blyg', S.kind, 'Blygger shows it', 'Claims, items and pins on blygs.')}
     ${choiceCard('kind', 'data_series', S.kind, 'A published statistic', 'From Our World in Data, the World Bank, the IMF, Eurostat, the WHO and others.')}
     ${choiceCard('kind', 'record', S.kind, 'An official record shows it', 'A law, a filing, a paper, a trial, a patent, a ruling.')}
     ${choiceCard('kind', 'web_data', S.kind, 'A number on a web page', 'A field in a public JSON file.')}
-    ${choiceCard('kind', 'judgment', S.kind, 'Someone decides', 'When nothing can check it automatically.')}
+    ${choiceCard('kind', 'judgment', S.kind, 'Someone decides', 'People you name, or you, with evidence.')}
   </div>`;
   let fields = '';
   if (S.kind === 'blyg') {
@@ -236,7 +244,8 @@ function stepHow(): string {
       ${S.judgeBy === 'named' ? `<label>Their blyg addresses <input type="text" data-bind="judges" value="${h(S.judges)}" placeholder="https://…/blyg/, https://…"></label>` : '<p class="hint">Readers will see that you decide your own claim.</p>'}
       <label>Where to look <input type="url" data-bind="evidence" value="${h(S.evidence)}" placeholder="optional: the page that will show it"></label>`;
   }
-  return `<section><h2><span>3</span>How will we know?</h2>${kinds}${fields ? `<div class="fields">${fields}</div>` : ''}</section>`;
+  return `<section><h2><span>3</span>How will we know?</h2>${kinds}${fields ? `<div class="fields">${fields}</div>` : ''}
+    <button type="button" class="link" data-simple>Keep it simple: I'll decide</button></section>`;
 }
 
 function stepWhen(): string {
@@ -310,9 +319,9 @@ function refresh(): void {
     : S.shape === 'quantity' ? `<b class="acc">${h(S.low || '?')}–${h(S.high || '?')}</b> ${h(S.unit)} · ${S.confidence}% sure`
     : S.shape === 'choice' ? (claim.outcomes ?? []).map((o, i) => `${S.rankOnly || S.pick === 'order' ? `${i + 1}. ` : ''}${h(o.label)}${o.probability !== undefined ? ` <b class="acc">${Math.round(o.probability * 100)}%</b>` : ''}`).join('<br>')
     : 'Not scored';
-  el.innerHTML = `<section class="checks">${list.length ? list.map((m) => `<p class="${m.level}">${m.level === 'stop' ? 'Fix' : 'Check'}: ${h(m.message)}</p>`).join('') : '<p class="ok">Ready. A stranger could check this.</p>'}</section>
+  el.innerHTML = `<section class="checks">${list.length ? list.map((m) => `<p class="${m.level}">${m.level === 'stop' ? 'Fix' : 'Check'}: ${h(m.message)}</p>`).join('') : `<p class="ok">${d.check && d.check.oracle === 'judgment' && d.check.by === 'author' ? 'Ready to publish. You will decide the outcome, and readers will see that you did.' : S.shape === 'record' ? 'Ready to publish. It goes on the record, unscored.' : 'Ready. A stranger could check this.'}</p>`}</section>
     <section class="preview"><div class="pcard">
-      <div class="row between"><span class="label">Claim</span>${how ? `<span class="pill">${how === 'automatic' ? 'Resolves automatically' : how === 'record' ? 'Resolves from the record' : 'Resolves by judgment'}</span>` : S.shape === 'record' ? '<span class="pill">On the record</span>' : ''}</div>
+      <div class="row between"><span class="label">Claim</span>${how ? `<span class="pill">${how === 'automatic' ? 'Resolves automatically' : how === 'record' ? 'Resolves from the record' : d.check && d.check.oracle === 'judgment' && d.check.by === 'author' ? 'The author decides' : 'Resolves by judgment'}</span>` : S.shape === 'record' ? '<span class="pill">On the record</span>' : ''}</div>
       <p class="stmt">${h(claim.claim) || '<span class="muted">Your claim</span>'}</p>
       <p>${sure}</p>
       <p class="muted">${claim.resolves_by ? `By ${h(claim.resolves_by)}` : 'No date yet'}${claim.criteria ? ` · ${h(claim.criteria)}` : ''}</p>
@@ -413,6 +422,16 @@ app.addEventListener('click', async (e) => {
     render();
   } else if (d.date) {
     S.resolvesBy = d.date;
+    render();
+  } else if (d.checkable !== undefined) {
+    S.checkable = true;
+    S.kind = null;
+    render();
+  } else if (d.simple !== undefined) {
+    S.checkable = false;
+    S.kind = 'judgment';
+    S.judgeBy = 'author';
+    reading = null;
     render();
   } else if (d.json !== undefined) {
     S.showJson = !S.showJson;
