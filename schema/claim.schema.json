@@ -4,7 +4,10 @@
   "title": "Blygger claim block",
   "description": "The JSON inside a fenced `claim` block in a blyg item's content_md. A `json` or unlabeled fence also counts when its object has both `probability` and `resolves_by`.",
   "type": "object",
-  "required": ["probability", "resolves_by"],
+  "required": [
+    "probability",
+    "resolves_by"
+  ],
   "properties": {
     "claim": {
       "type": "string",
@@ -27,6 +30,33 @@
       "minLength": 1,
       "description": "How the outcome will be decided, specific enough for someone else to apply. Recommended."
     },
+    "resolvers": {
+      "description": "Who decides the outcome. \"anyone\" (the default when absent): the author proposes, and any blyg can confirm or dispute within dispute_days. A list of blyg URLs: only those blygs resolve; the author's own resolution is one vote. \"data\": the scorer computes the outcome from a machine-readable check; nobody votes.",
+      "oneOf": [
+        {
+          "enum": [
+            "anyone",
+            "data"
+          ]
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      ]
+    },
+    "dispute_days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 90,
+      "default": 7,
+      "description": "How long after a proposed outcome other blygs can dispute it. If nobody does, it settles."
+    },
     "provenance": {
       "type": "string",
       "minLength": 1,
@@ -39,7 +69,10 @@
     },
     "tags": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true
     },
     "commit": {
