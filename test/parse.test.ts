@@ -92,3 +92,13 @@ test('a claim block quoted inside a longer fence is an example, not a claim', ()
   const r = parseContent('````markdown\n```claim\n{"probability": 0.6, "resolves_by": "2027-01-01"}\n```\n````');
   assert.equal(r.claims.length, 0);
 });
+
+test('resolvers and dispute_days', () => {
+  const claim = (extra: string) => parseContent(`\`\`\`claim\n{"probability": 0.6, "resolves_by": "2027-01-01", "claim": "a", "criteria": "b"${extra}}\n\`\`\``);
+  assert.deepEqual(claim(', "resolvers": "anyone", "dispute_days": 7').issues, []);
+  assert.deepEqual(claim(', "resolvers": ["https://venkateshrao.com/blyg/", "https://blyg.aneeshsathe.com/"]').issues, []);
+  assert.match(claim(', "resolvers": "me"').issues[0].message, /resolvers/);
+  assert.match(claim(', "resolvers": []').issues[0].message, /resolvers/);
+  assert.match(claim(', "dispute_days": 0').issues[0].message, /dispute_days/);
+  assert.match(claim(', "resolvers": "data"').issues[0].message, /no machine-readable `check`/);
+});
