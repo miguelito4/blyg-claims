@@ -22,7 +22,7 @@ const cutoff = new Date('2026-11-28T07:59:59Z'); // 23:59:59 Pacific on Nov 27
 test('hackathon claim: caseyjr is excluded, the unreachable blyg is reported, the count is 0', async () => {
   const r = await evaluateBlyg(hackathon, { fetch: world(), cutoff });
   assert.equal(r.value, 0);
-  assert.equal(compare(r.value, hackathon.op, hackathon.threshold), false);
+  assert.equal(compare(r.value, hackathon.op!, hackathon.threshold!), false);
   assert.deepEqual(r.unreadable.map((u) => u.source), ['https://gone.example/']);
   assert.equal(r.detail.considered, 1);
 });

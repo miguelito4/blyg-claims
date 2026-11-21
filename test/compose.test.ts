@@ -40,7 +40,7 @@ test('just record it needs no check and no probability', () => {
 });
 
 test('mistake: it is already true', () => {
-  const m = mistakes({ ...unemployment, check: { ...unemployment.check!, threshold: 4 } as Draft['check'] }, { today, latest: { value: 4.4, period: 'Oct 2026', frequency: 'monthly' } });
+  const m = mistakes({ ...unemployment, check: { ...unemployment.check!, threshold: 4 } as Draft['check'] }, { today, latest: { value: 4.4, period: 'Oct 2026' }, frequency: 'monthly' });
   assert.match(m.map((x) => x.message).join('\n'), /already true: the latest reading is 4.4 \(Oct 2026\)/);
 });
 
@@ -49,7 +49,7 @@ test('mistake: the data will not exist by the date', () => {
     shape: 'binary', statement: 'World extreme poverty falls below 8% in 2028', resolvesBy: '2028-12-31', probability: 0.4,
     check: { oracle: 'data_series', provider: 'worldbank', value: 'SI.POV.DDAY@2028-01-01', as_of: '2028-12-31', op: '<', threshold: 8 },
   };
-  const m = mistakes(annual, { today, latest: { value: 9.9, period: '2022', frequency: 'annual' } });
+  const m = mistakes(annual, { today, latest: { value: 9.9, period: '2022' }, frequency: 'annual' });
   const stop = m.find((x) => x.level === 'stop');
   assert.match(stop!.message, /Data for 2028-01-01 is usually published around 2030-02-05, after your date/);
 });

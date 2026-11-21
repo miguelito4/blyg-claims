@@ -4,7 +4,20 @@ Prediction journals for [Blygger](https://blygger.org): post probabilistic claim
 
 **Judgment without money.** Provenance is the stake, and readers are the witnesses. No oracle, no token, no market. A blyg already publishes timestamped, versioned and pinnable items, which is everything a prediction journal needs. This repo adds a shape for claims and a scorer that reads it.
 
-> Status: built during the [Blygger Hackathon 2026](https://protocol-institute.org/events/blygger-hackathon-2026/) (November 20–27). Nothing here works yet; see [PLAN.md](PLAN.md).
+> Status: built during the [Blygger Hackathon 2026](https://protocol-institute.org/events/blygger-hackathon-2026/) (November 20–27). **Try the composer: https://miguelito4.github.io/blyg-claims/**. Design notes in [PLAN.md](PLAN.md).
+
+## The composer
+
+A page that asks plain questions and builds a checkable claim from the answers:
+
+1. **What kind of claim is this?** Yes or no · From a list (pick the winner, pick who makes it, put them in order) · How much · Just record it.
+2. **What do you think will happen?**
+3. **How will we know?** Blygger shows it · A published statistic · An official record shows it · A number on a web page · Someone decides.
+4. **By when?**
+5. **How sure are you?**
+6. **Anything that would cancel it?**
+
+Before you publish it catches the mistakes that look fine on the surface: a claim that is already true, data that won't be published by your date, a number that has to be exactly equal, vague words, percentages that don't add up. Then it publishes the claim to your own blyg and pins it (Blygger Studio, through OAuth; the page keeps nothing), or you copy the block into any blyg.
 
 ## The shape
 

@@ -33,18 +33,18 @@ const clean = (s: string | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
 /** A plain-language sentence saying how the outcome is decided, used as `criteria`. */
 export function describeCheck(check: Check | undefined): string {
   if (!check) return '';
-  const cmp = 'op' in check ? `${words(check.op)} ${check.threshold}` : '';
+  const cmp = 'op' in check && check.op ? `${words(check.op)} ${check.threshold}` : '';
   switch (check.oracle) {
     case 'blyg':
       return check.metric === 'item_exists'
         ? `The item ${check.item} is published and not withdrawn.`
         : `The number of blygs${check.among === 'directory' || !check.among ? ' in the blygger.com directory' : ''}${check.exclude?.length ? ` (not counting ${check.exclude.join(', ')})` : ''} with at least one claim ${cmp}.`;
     case 'data_series':
-      return `${check.value} on ${providerName(check.provider)}, as published on ${check.as_of}, ${cmp}.`;
+      return `${check.value} on ${providerName(check.provider)}, as published on ${check.as_of}${cmp ? `, ${cmp}` : ''}.`;
     case 'record':
       return `The ${registryName(check.registry)} record ${check.id} shows: ${check.event}.`;
     case 'web_data':
-      return `The value at ${check.pointer} in ${check.url} ${cmp}.`;
+      return `The value at ${check.pointer} in ${check.url}${cmp ? ` ${cmp}` : ''}.`;
     case 'judgment':
       return check.by === 'author' ? `The author decides${check.evidence ? `, from ${check.evidence}` : ''}.` : `Decided by ${check.by.join(', ')}${check.evidence ? `, from ${check.evidence}` : ''}.`;
   }
@@ -109,7 +109,9 @@ export interface Facts {
   /** Today, YYYY-MM-DD. */
   today: string;
   /** The source's latest reading, when the composer could fetch it. */
-  latest?: { value: number | boolean; period: string; frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual' };
+  latest?: { value: number | boolean; period: string };
+  /** How often the source publishes, when known. */
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual';
 }
 
 const VAGUE = ['significant', 'significantly', 'substantial', 'mainstream', 'major', 'soon', 'widely', 'many', 'a lot', 'considerably', 'meaningful'];
@@ -135,6 +137,9 @@ export function mistakes(d: Draft, facts: Facts): Mistake[] {
   }
 
   if (d.shape !== 'record' && !d.check) out.push({ level: 'stop', message: 'Say how we will know. If nothing can check it, choose "Someone decides" or "Just record it".' });
+  if (d.shape === 'binary' && d.check && d.check.oracle !== 'judgment' && d.check.oracle !== 'record' && !('op' in d.check && d.check.op)) {
+    out.push({ level: 'stop', message: 'Say what the number has to do: rise above, fall below, and by how much.' });
+  }
 
   if (d.shape === 'binary' && d.probability !== undefined && (d.probability <= 0.02 || d.probability >= 0.98)) {
     out.push({ level: 'warn', message: 'At this confidence you are saying it is all but certain. If so, is it worth forecasting?' });
@@ -159,18 +164,18 @@ export function mistakes(d: Draft, facts: Facts): Mistake[] {
 
   // The three mistakes that look fine on the surface.
   const check = d.check;
-  if (check && 'op' in check && facts.latest && typeof facts.latest.value === 'number' && typeof check.threshold === 'number') {
+  if (check && 'op' in check && check.op && facts.latest && typeof facts.latest.value === 'number' && typeof check.threshold === 'number') {
     const v = facts.latest.value;
     const t = check.threshold;
-    const already = { '>': v > t, '>=': v >= t, '<': v < t, '<=': v <= t, '==': v === t, '!=': v !== t }[check.op];
+    const already = { '>': v > t, '>=': v >= t, '<': v < t, '<=': v <= t, '==': v === t, '!=': v !== t }[check.op as string];
     if (already && d.shape === 'binary') {
       out.push({ level: 'warn', message: `It is already true: the latest reading is ${v} (${facts.latest.period}). Unless you expect it to reverse, this claim says nothing new.` });
     }
   }
-  if (check && check.oracle === 'data_series' && facts.latest?.frequency && d.resolvesBy) {
+  if (check && check.oracle === 'data_series' && facts.frequency && d.resolvesBy) {
     const m = /@(\d{4}-\d{2}-\d{2})/.exec(check.value);
     if (m) {
-      const due = addDays(m[1], LAG_DAYS[facts.latest.frequency] + periodDays(facts.latest.frequency));
+      const due = addDays(m[1], LAG_DAYS[facts.frequency] + periodDays(facts.frequency));
       if (due > d.resolvesBy) {
         out.push({ level: 'stop', message: `Data for ${m[1]} is usually published around ${due}, after your date. Pick ${due} or later.` });
       }

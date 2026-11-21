@@ -47,8 +47,9 @@ test('each oracle checks its own parameters', () => {
   assert.match(checkCheck({ oracle: 'judgment', by: 'everyone' })[0], /by/);
 });
 
-test('automatic checks need a comparison; errors in a fallback are found too', () => {
-  assert.match(checkCheck({ oracle: 'web_data', url: 'https://example.org/x.json', pointer: '/n' }).join(' '), /op.*threshold/s);
+test('a comparison is optional ("how much" claims), but op and threshold come together; fallbacks are checked too', () => {
+  assert.deepEqual(checkCheck({ oracle: 'web_data', url: 'https://example.org/x.json', pointer: '/n' }), []);
+  assert.match(checkCheck({ oracle: 'web_data', url: 'https://example.org/x.json', pointer: '/n', op: '>' })[0], /threshold/);
   assert.match(checkCheck({ ...earnings, fallback: { oracle: 'data_series', provider: 'fred', value: 'X@2030-01-01', as_of: 'nope', op: '<=', threshold: 1 } })[0], /check\.fallback\.as_of/);
 });
 

@@ -5,9 +5,15 @@
   "license": "MIT",
   "type": "module",
   "private": true,
-  "engines": { "node": ">=22.18" },
-  "bin": { "blyg-claims": "src/cli.ts" },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "blyg-claims": "src/cli.ts"
+  },
   "scripts": {
-    "test": "node --test 'test/**/*.test.ts'"
+    "test": "node --test 'test/**/*.test.ts'",
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/build.mjs && cd _site && python3 -m http.server 8000"
   }
 }

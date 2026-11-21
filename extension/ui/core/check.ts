@@ -15,8 +15,9 @@ export const OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
 export type Op = (typeof OPS)[number];
 
 interface Comparison {
-  op: Op;
-  threshold: number | boolean | string;
+  /** With threshold, turns the value into yes or no; absent for "how much" claims. */
+  op?: Op;
+  threshold?: number | boolean | string;
   fallback?: Check;
 }
 
@@ -85,8 +86,12 @@ export function checkCheck(value: unknown, path = 'check'): string[] {
   }
   const errs: string[] = [];
   if (o !== 'judgment' && o !== 'record') {
-    if (!(OPS as readonly unknown[]).includes(value.op)) errs.push(`\`${path}.op\` must be one of ${OPS.join(' ')}`);
-    if (!['number', 'boolean', 'string'].includes(typeof value.threshold)) errs.push(`\`${path}.threshold\` is required`);
+    // A comparison turns the value into yes or no. Without one, the value is
+    // the outcome itself (a "how much" claim).
+    if ('op' in value || 'threshold' in value) {
+      if (!(OPS as readonly unknown[]).includes(value.op)) errs.push(`\`${path}.op\` must be one of ${OPS.join(' ')}`);
+      if (!['number', 'boolean', 'string'].includes(typeof value.threshold)) errs.push(`\`${path}.threshold\` is required with \`op\``);
+    }
     if ('fallback' in value) errs.push(...checkCheck(value.fallback, `${path}.fallback`));
   }
   switch (o) {
@@ -98,7 +103,7 @@ export function checkCheck(value: unknown, path = 'check'): string[] {
       break;
     case 'data_series':
       if (!(PROVIDERS as readonly unknown[]).includes(value.provider)) errs.push(`\`${path}.provider\` must be one of ${PROVIDERS.join(', ')}`);
-      if (typeof value.value !== 'string' || !/[A-Z0-9]+@/.test(value.value)) errs.push(`\`${path}.value\` must name at least one SERIES@DATE`);
+      if (typeof value.value !== 'string' || !/\S+@\d{4}-\d{2}-\d{2}/.test(value.value)) errs.push(`\`${path}.value\` must name at least one SERIES@DATE`);
       if (typeof value.as_of !== 'string' || !DATE.test(value.as_of)) errs.push(`\`${path}.as_of\` must be a date in YYYY-MM-DD form`);
       break;
     case 'record':
