@@ -67,17 +67,27 @@ Screens (mockup on the design canvas): Connect → Compose → Preview, publish 
 
 Upstream ask for Studio (an issue, once the composer works): render `claim` blocks as cards on public pages, as 0.62 does for math, and fold a composer into Studio itself.
 
-## Self-grading (decided 2026-11-21)
+## Oracles and claim shapes (decided 2026-11-21, replaces the dispute window)
 
-An author who resolves their own claims can grade themselves generously, so an author's say-so never settles a claim alone:
+A claim resolves mechanically wherever it can, so choosing the source is part of making a good forecast. Sources come in four kinds, mutually exclusive by how trust in the answer is established, and together exhaustive:
 
-- **`resolvers`** on the claim: `"anyone"` (the default when absent, which covers the three live claims), a list of blyg URLs, or `"data"`.
-- **Anyone:** the author's resolution is a *proposal*. For `dispute_days` (default 7) any blyg can publish a confirmation or a dispute, as a response item on its own blyg that links the claim and is pinned there. No dispute → **settled**. A dispute → **disputed**, shown with both sides.
-- **Named:** only the listed blygs' resolutions count; the author's is one vote among them.
-- **Data:** the scorer computes the outcome from a machine-readable `check` (series, threshold, fallback). Nobody votes. `check` is still to design; the earnings claim is the first candidate.
-- **Scoring** counts settled outcomes by default; readers can add disputed or proposed ones. The report shows each author's proposed-vs-settled record, so a habit of generous self-grading becomes visible.
-- **Statuses** gain `proposed`, `settled` and `disputed`.
-- What this doesn't solve: Sybil witnesses (one person, many blygs) and collusion. Time and track record are the only stake; a witness's own calibration and history are shown next to their vote.
+| Kind | Trust comes from | Examples |
+| --- | --- | --- |
+| `blyg` | the protocol: pins and content hashes | claims on other blygs, an item existing |
+| `data_series` | a publisher's versioned statistics, read at a fixed vintage (`as_of`) | FRED/ALFRED; later World Bank, OWID, BLS |
+| `web_data` | an unversioned web document, archived when read | a JSON or CSV field, a leaderboard |
+| `judgment` | people, named in the claim | "consensus of mathematicians" |
+
+Providers (FRED) are parameters of a kind, never kinds. The claim stores its full check; the catalog only helps writers. A claim never depends on this tool or the catalog to resolve.
+
+Claim shapes, after Venkat's first claim (32c0npw…) argued that one binary probability is too narrow:
+
+- **Yes or no:** one probability.
+- **Which one:** an ordered list of outcomes; percentages optional. With percentages it is scored like the binary case across outcomes; without, it is a ranking.
+- **How much:** a number with a range.
+- **Voids if** (optional, any shape): what would cancel the claim, written before the outcome is known. Uncertainty nobody can price goes here, not into the probability.
+
+The form opens with "What kind of claim is this?" and hides the engineering: kinds of source appear as plain choices, the check is built from a few fields with a live reading, and the JSON is never shown unless asked for.
 
 ## Studio extension (stretch goal)
 
