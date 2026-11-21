@@ -1,0 +1,12 @@
+{
+  "about": "Friendly names for common checks, for the composer's typeahead. A claim stores the full check it was built from and never refers back to this file.",
+  "entries": [
+    { "name": "Number of other blygs with a claim", "check": { "oracle": "blyg", "metric": "blygs_with_claims", "among": "directory" }, "asks": ["exclude", "op", "threshold"] },
+    { "name": "A blyg item exists", "check": { "oracle": "blyg", "metric": "item_exists" }, "asks": ["item"] },
+    { "name": "US consumer prices (CPI-U)", "check": { "oracle": "fred", "value": "CPIAUCSL@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "US unemployment rate", "check": { "oracle": "fred", "value": "UNRATE@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "US median weekly earnings, professional workers", "check": { "oracle": "fred", "value": "LEU0254530200Q@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "A number in a JSON document", "check": { "oracle": "json" }, "asks": ["url", "pointer", "op", "threshold"] },
+    { "name": "Someone decides", "check": { "oracle": "judgment" }, "asks": ["by", "evidence"] }
+  ]
+}
