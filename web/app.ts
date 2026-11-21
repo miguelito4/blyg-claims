@@ -311,7 +311,7 @@ function render(): void {
     ? `<span class="dot"></span>${h(conn.origin.replace(/^https?:\/\//, ''))} <button type="button" class="link" data-disconnect>Disconnect</button>`
     : `<form data-connect class="connect"><input type="text" name="blyg" placeholder="your blyg, e.g. example.com/blyg" value="${h(blygInput)}" aria-label="Your blyg's address"><button type="submit">Connect</button></form>`;
   const tabs = `<nav class="tabs" aria-label="Views"><button type="button" data-view="new" aria-pressed="${view === 'new'}">New claim</button>${conn ? `<button type="button" data-view="mine" aria-pressed="${view === 'mine'}">Your claims</button>` : ''}<button type="button" data-view="record" aria-pressed="${view === 'record'}">Track record</button></nav>`;
-  app.innerHTML = `<header><div class="brand">blyg-claims</div><div class="conn">${top}</div></header>
+  app.innerHTML = `<header><div class="brand">Blyggi</div><div class="conn">${top}</div></header>
     ${tabs}
     ${notice ? `<div class="notice ${notice.kind}" role="status">${notice.kind === 'ok' && published ? `${h(notice.text)} <a href="${h(published.url)}" target="_blank" rel="noopener">See it on your blyg ↗</a>` : h(notice.text)}</div>` : ''}
     <main>${view === 'record' ? renderRecord() : view === 'mine' && conn ? renderMine() : `<div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>

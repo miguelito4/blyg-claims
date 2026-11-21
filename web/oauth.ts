@@ -4,7 +4,7 @@
 // blyg.
 
 const SCOPE = 'owner:read owner:draft owner:publish';
-const CLIENT_NAME = 'blyg-claims';
+const CLIENT_NAME = 'Blyggi';
 
 export interface Connection {
   origin: string;

@@ -16,6 +16,9 @@ const VERSION = (() => {
 })();
 
 const OUT = '_site';
+// The composer lives at /app/. /new/ and the site root send people there
+// until the landing page exists; /new/ is the address to share.
+const APP = join(OUT, 'app');
 const SOURCES = ['web', 'extension/ui/core'];
 
 await rm(OUT, { recursive: true, force: true });
@@ -24,13 +27,18 @@ for (const dir of SOURCES) {
     if (!name.endsWith('.ts')) continue;
     const ts = await readFile(join(dir, name), 'utf8');
     const js = stripTypeScriptTypes(ts, { mode: 'strip' }).replace(/(from\s+['"][^'"]+)\.ts(['"])/g, `$1.js?v=${VERSION}$2`);
-    const out = join(OUT, dir, name.replace(/\.ts$/, '.js'));
+    const out = join(APP, dir, name.replace(/\.ts$/, '.js'));
     await mkdir(dirname(out), { recursive: true });
     await writeFile(out, js);
   }
 }
 const html = (await readFile('web/index.html', 'utf8')).replace('./web/app.js', `./web/app.js?v=${VERSION}`).replace('./style.css', `./style.css?v=${VERSION}`);
-await writeFile(join(OUT, 'index.html'), html);
-await copyFile('web/style.css', join(OUT, 'style.css'));
+await writeFile(join(APP, 'index.html'), html);
+await copyFile('web/style.css', join(APP, 'style.css'));
+const forward = (to) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Blyggi</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><script>location.replace('${to}' + location.search + location.hash)</script></head><body><a href="${to}">Blyggi</a></body></html>`;
+for (const [dir, to] of [['', '/app/'], ['new', '/app/'], ['record', '/app/']]) {
+  await mkdir(join(OUT, dir), { recursive: true });
+  await writeFile(join(OUT, dir, 'index.html'), forward(to));
+}
 await writeFile(join(OUT, '.nojekyll'), '');
 console.log(`built ${OUT}/ (version ${VERSION})`);

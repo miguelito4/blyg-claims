@@ -38,7 +38,7 @@ export async function publishClaim(c: Connection, contentMd: string): Promise<Pu
   const id = created.id as string;
   const pub = await call(c, 'POST', `/items/${encodeURIComponent(id)}/publish`, {
     expectedRevision: created.revision,
-    note: 'Claim published with blyg-claims',
+    note: 'Claim published with Blyggi',
   });
   const version = pub.version as number;
   await call(c, 'PUT', `/items/${encodeURIComponent(id)}/versions/${version}/pin`, { expectedRevision: pub.revision });
@@ -83,7 +83,7 @@ export async function resolveClaim(c: Connection, id: string, r: ResolutionBlock
   if (item.dirty) throw new Error('This claim has unpublished edits in Studio. Publish or discard them there first, so they are not published with your resolution.');
   const contentMd = appendResolution(item.contentMd as string, r);
   const patched = await call(c, 'PATCH', path, { contentMd, expectedRevision: item.revision });
-  const pub = await call(c, 'POST', `${path}/publish`, { expectedRevision: patched.revision, note: `Resolved: ${describeOutcome(r)} (blyg-claims)` });
+  const pub = await call(c, 'POST', `${path}/publish`, { expectedRevision: patched.revision, note: `Resolved: ${describeOutcome(r)} (Blyggi)` });
   const version = pub.version as number;
   await call(c, 'PUT', `${path}/versions/${version}/pin`, { expectedRevision: pub.revision });
   return { id, version, url: `${c.origin}${item.kind === 'thread' ? 't' : 'f'}/${id}/` };
