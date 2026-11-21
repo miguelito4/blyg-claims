@@ -98,7 +98,7 @@ export function ClaimBadge({ context }: { context: EntryContext }) {
       title={`Claim, ${LABEL[status]}${pinned === false ? ', not pinned' : pinned ? ', pinned' : ''}`}
       onClick={() => context.openSheet((close) => <ClaimView context={context} found={found} close={close} onChange={reload} />)}
     >
-      <span aria-hidden="true">{pinned === false ? '◇' : '◆'}</span> {text}
+      <span aria-hidden="true">{pinned === null ? '·' : pinned ? '◆' : '◇'}</span> {text}
     </button>
   );
 }
@@ -146,6 +146,10 @@ function ClaimView({ context, found, close, startResolving, onChange }: { contex
 
   const forecastToo = () => {
     close();
+    // A fork records where the forecast came from (forked_from), so readers can group
+    // every forecast on the same claim. The draft copy is the fallback where Studio
+    // offers no fork for this entry.
+    if (context.actions.fork) return context.actions.fork();
     const copy: ClaimBlock = { ...claim };
     const md = `${context.url ? `Forecasting this too: ${context.url}\n\n` : ''}${toMarkdown(copy)}`;
     void context.run(() => context.openDraft({ kind: 'fragment', contentMd: md }));
