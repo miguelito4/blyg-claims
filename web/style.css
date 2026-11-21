@@ -96,3 +96,12 @@ footer { max-width: 680px; margin: 0 auto; padding: 20px; color: var(--muted); f
 .fields.quiet p { margin: 4px 0 0; }
 label small { font-weight: 400; margin-left: 6px; }
 section > .link { margin-top: 12px; }
+.tabs { display: flex; gap: 6px; margin-top: 14px; }
+.tabs button { border-radius: 22px; }
+.tabs button[aria-pressed=true] { background: var(--acc); color: var(--on-acc); border-color: var(--acc); font-weight: 700; }
+h2.plain { font-size: 17px; }
+.pcard.mine { margin-top: 10px; }
+.pcard.mine > button { margin-top: 12px; }
+.small { font-size: 13px; }
+.fields.resolve { margin-top: 12px; }
+.chips button[aria-pressed=true] { background: var(--acc); color: var(--on-acc); border-color: var(--acc); font-weight: 700; }

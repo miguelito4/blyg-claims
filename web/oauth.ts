@@ -3,13 +3,20 @@
 // a one-hour token in sessionStorage and nothing else; the claims live on the
 // blyg.
 
-const SCOPE = 'owner:draft owner:publish';
+const SCOPE = 'owner:read owner:draft owner:publish';
 const CLIENT_NAME = 'blyg-claims';
 
 export interface Connection {
   origin: string;
   token: string;
   expiresAt: number;
+  /** Granted scopes, space-separated. Older connections may lack it. */
+  scope?: string;
+}
+
+/** Whether this connection can read drafts, which resolving needs. */
+export function canRead(c: Connection): boolean {
+  return (c.scope ?? '').split(' ').includes('owner:read');
 }
 
 interface Discovery {
@@ -147,7 +154,7 @@ export async function finishConnect(): Promise<{ connection: Connection; keep: u
   });
   if (!res.ok) throw new Error(`Your Studio would not issue access (${res.status}). ${await res.text()}`);
   const t = await res.json();
-  const connection = { origin: pending.origin, token: t.access_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000 };
+  const connection = { origin: pending.origin, token: t.access_token, expiresAt: Date.now() + (t.expires_in ?? 3600) * 1000, scope: typeof t.scope === 'string' ? t.scope : SCOPE };
   store.set(session(), 'blyg-claims:connection', connection);
   return { connection, keep: pending.keep };
 }

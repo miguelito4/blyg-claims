@@ -4,8 +4,10 @@
 import { mistakes, toClaim, toMarkdown, withCatchAll, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
 import { resolvesBy, type Check } from '../extension/ui/core/check.ts';
 import { SOMETHING_ELSE, type Pick, type Shape } from '../extension/ui/core/shapes.ts';
-import { connect, disconnect, findBlyg, finishConnect, savedConnection, type Connection } from './oauth.ts';
-import { publishClaim, type Published } from './studio.ts';
+import { canRead, connect, disconnect, findBlyg, finishConnect, savedConnection, type Connection } from './oauth.ts';
+import { listClaims, publishClaim, resolveClaim, type MyClaim, type Published } from './studio.ts';
+import { checkAnswer, toResolution, describeOutcome, type Answer } from '../extension/ui/core/resolve.ts';
+import { shapeOf } from '../extension/ui/core/shapes.ts';
 import { INDICATORS, PUBLISHERS, REGISTERS, grouped, latest, type Indicator, type Reading } from './sources.ts';
 
 type Kind = 'blyg' | 'data_series' | 'record' | 'web_data' | 'judgment';
@@ -57,6 +59,10 @@ let blygInput = '';
 let notice: { kind: 'error' | 'ok'; text: string } | null = null;
 let published: Published | null = null;
 let busy = false;
+let view: 'new' | 'mine' = 'new';
+let mine: MyClaim[] | null = null;
+let mineState: 'idle' | 'loading' | 'error' = 'idle';
+const R = { id: '', choice: '' as '' | 'yes' | 'no' | 'void', labels: [] as string[], value: '', evidence: '', note: '' };
 
 const app = document.getElementById('app')!;
 
@@ -298,13 +304,17 @@ function render(): void {
   const top = conn
     ? `<span class="dot"></span>${h(conn.origin.replace(/^https?:\/\//, ''))} <button type="button" class="link" data-disconnect>Disconnect</button>`
     : `<form data-connect class="connect"><input type="text" name="blyg" placeholder="your blyg, e.g. example.com/blyg" value="${h(blygInput)}" aria-label="Your blyg's address"><button type="submit">Connect</button></form>`;
+  const tabs = conn
+    ? `<nav class="tabs" aria-label="Views"><button type="button" data-view="new" aria-pressed="${view === 'new'}">New claim</button><button type="button" data-view="mine" aria-pressed="${view === 'mine'}">Your claims</button></nav>`
+    : '';
   app.innerHTML = `<header><div class="brand">blyg-claims</div><div class="conn">${top}</div></header>
-    ${notice ? `<div class="notice ${notice.kind}" role="status">${notice.kind === 'ok' && published ? `Published and pinned. <a href="${h(published.url)}" target="_blank" rel="noopener">See it on your blyg ↗</a>` : h(notice.text)}</div>` : ''}
-    <main><div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>
+    ${tabs}
+    ${notice ? `<div class="notice ${notice.kind}" role="status">${notice.kind === 'ok' && published ? `${h(notice.text)} <a href="${h(published.url)}" target="_blank" rel="noopener">See it on your blyg ↗</a>` : h(notice.text)}</div>` : ''}
+    <main>${view === 'mine' && conn ? renderMine() : `<div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>
     ${stepKind()}
-    ${S.shape ? stepWhat() + stepHow() + stepWhen() + stepSure() + stepCancel() + '<div id="derived"></div>' : ''}
+    ${S.shape ? stepWhat() + stepHow() + stepWhen() + stepSure() + stepCancel() + '<div id="derived"></div>' : ''}`}
     </main>`;
-  refresh();
+  if (view === 'new') refresh();
 }
 
 function refresh(): void {
@@ -366,6 +376,90 @@ async function loadReading(): Promise<void> {
   render();
 }
 
+
+// ---------- your claims ----------
+
+const STATUS_LABEL: Record<string, string> = { due: 'Due', open: 'Open', resolved: 'Resolved', void: "Couldn't be decided", record: 'On the record' };
+
+function forecastLine(c: MyClaim['claim']): string {
+  const shape = shapeOf(c);
+  if (shape === 'binary') return `<b class="acc">${Math.round((c.probability ?? 0) * 100)}%</b>`;
+  if (shape === 'quantity') return `<b class="acc">${h(c.range?.[0])}–${h(c.range?.[1])}</b> ${h(c.unit ?? '')}`;
+  if (shape === 'choice') return (c.outcomes ?? []).slice(0, 4).map((o) => `${h(o.label)}${o.probability !== undefined ? ` ${Math.round(o.probability * 100)}%` : ''}`).join(' · ');
+  return '';
+}
+
+function resolvePanel(m: MyClaim): string {
+  const c = m.claim;
+  const shape = shapeOf(c);
+  let choices = '';
+  if (shape === 'binary') {
+    choices = `<div class="seg" role="group" aria-label="What happened">${(['yes', 'no', 'void'] as const).map((v) => `<button type="button" data-r-choice="${v}" aria-pressed="${R.choice === v}">${v === 'yes' ? 'Yes' : v === 'no' ? 'No' : "Can't tell"}</button>`).join('')}</div>`;
+  } else if (shape === 'choice') {
+    const many = c.pick !== 'one';
+    choices = `<p class="hint">${many ? `Choose the ${c.size} that ${c.pick === 'order' ? 'finished on top, in order (tap in order)' : 'made it'}.` : 'Choose what happened.'}</p>
+      <div class="chips">${(c.outcomes ?? []).map((o) => { const i = R.labels.indexOf(o.label); return `<button type="button" data-r-label="${h(o.label)}" aria-pressed="${i >= 0}">${i >= 0 && c.pick === 'order' ? `${i + 1}. ` : ''}${h(o.label)}</button>`; }).join('')}
+      <button type="button" data-r-choice="void" aria-pressed="${R.choice === 'void'}">Can't tell</button></div>`;
+  } else if (shape === 'quantity') {
+    choices = `<label>The real number <input type="number" step="any" data-r="value" value="${h(R.value)}" class="short"> ${h(c.unit ?? '')}</label>
+      <button type="button" class="link" data-r-choice="void">Can't tell</button>`;
+  }
+  const isVoid = R.choice === 'void';
+  return `<div class="fields resolve">
+    ${choices}
+    ${isVoid ? `<label>Why can't it be decided? <input type="text" data-r="note" value="${h(R.note)}" placeholder="${h(c.voids_if ? `e.g. ${c.voids_if}` : 'e.g. the source stopped publishing')}"></label>${c.voids_if ? `<p class="hint">You wrote that it is cancelled if: ${h(c.voids_if)}</p>` : ''}`
+      : `<label>Evidence <input type="url" data-r="evidence" value="${h(R.evidence)}" placeholder="a link that shows the outcome"></label>`}
+    ${c.check && 'evidence' in c.check && c.check.evidence ? `<p class="hint">You said to look at <a href="${h(c.check.evidence)}" target="_blank" rel="noopener">${h(c.check.evidence)}</a></p>` : ''}
+    <p class="hint" id="r-problems"></p>
+    <div class="actions"><button type="button" class="primary" data-r-publish>${busy ? 'Publishing…' : 'Publish resolution'}</button><button type="button" class="link" data-r-cancel>Cancel</button></div>
+    <p class="hint">Your answer is added to the claim as a new version and pinned. The claim itself stays exactly as you wrote it.</p>
+  </div>`;
+}
+
+function renderMine(): string {
+  if (mineState === 'loading' || mine === null) return '<p class="loading">Reading your claims…</p>';
+  if (mineState === 'error') return '<p class="notice error">Could not read your blyg\'s claims. Reload to try again.</p>';
+  if (!mine.length) return '<p class="hint">No claims on your blyg yet. Make one under New claim.</p>';
+  const groups: [string, MyClaim[]][] = [['Due', mine.filter((m) => m.status === 'due')], ['Open', mine.filter((m) => m.status === 'open')], ['Resolved', mine.filter((m) => m.status === 'resolved' || m.status === 'void')], ['On the record', mine.filter((m) => m.status === 'record')]];
+  return groups.filter(([, xs]) => xs.length).map(([title, xs]) => `<section><h2 class="plain">${title} <small class="muted">${xs.length}</small></h2>
+    ${xs.map((m) => `<article class="pcard mine">
+      <div class="row between"><span class="label">${STATUS_LABEL[m.status]}</span><span class="muted small">by ${h(m.claim.resolves_by)}</span></div>
+      <p class="stmt">${h(m.claim.claim ?? '(no statement)')}</p>
+      <p>${forecastLine(m.claim)}${m.resolution ? ` · <b>${h(describeOutcome(m.resolution))}</b>` : ''}</p>
+      <p class="small"><a href="${h(m.url)}" target="_blank" rel="noopener">Open on your blyg ↗</a></p>
+      ${m.status === 'due' || m.status === 'open' ? (R.id === m.id ? resolvePanel(m) : `<button type="button" ${m.status === 'due' ? 'class="primary"' : ''} data-r-start="${h(m.id)}">${m.status === 'due' ? 'Resolve' : 'Resolve early'}</button>`) : ''}
+    </article>`).join('')}</section>`).join('');
+}
+
+async function loadMine(): Promise<void> {
+  if (!conn) return;
+  mineState = 'loading';
+  render();
+  try {
+    mine = await listClaims(conn.origin, today);
+    mineState = 'idle';
+  } catch {
+    mineState = 'error';
+  }
+  render();
+}
+
+function answer(m: MyClaim): Answer | null {
+  const shape = shapeOf(m.claim);
+  if (R.choice === 'void') return { kind: 'void', note: R.note };
+  if (shape === 'binary') return R.choice ? { kind: 'binary', outcome: R.choice === 'yes' } : null;
+  if (shape === 'choice') return R.labels.length ? { kind: 'choice', labels: R.labels } : null;
+  if (shape === 'quantity') return R.value.trim() ? { kind: 'quantity', value: Number(R.value) } : null;
+  return null;
+}
+
+function rProblems(): string[] {
+  const m = mine?.find((x) => x.id === R.id);
+  if (!m) return [];
+  const a = answer(m);
+  return a ? checkAnswer(m.claim, a, R.evidence) : ['Choose what happened.'];
+}
+
 // ---------- events ----------
 
 function setOption(i: number, label: string): void {
@@ -374,6 +468,12 @@ function setOption(i: number, label: string): void {
 
 app.addEventListener('input', (e) => {
   const t = e.target as HTMLInputElement;
+  if (t.dataset.r) {
+    (R as Record<string, unknown>)[t.dataset.r] = t.value;
+    const el = document.getElementById('r-problems');
+    if (el) el.textContent = '';
+    return;
+  }
   if (t.dataset.bind) {
     const k = t.dataset.bind as keyof typeof S;
     (S as Record<string, unknown>)[k] = ['probability', 'confidence', 'size'].includes(k) ? Number(t.value) : t.value;
@@ -405,6 +505,60 @@ app.addEventListener('click', async (e) => {
   const t = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
   if (!t || t.disabled) return;
   const d = t.dataset;
+  if (d.view) {
+    view = d.view as 'new' | 'mine';
+    notice = null;
+    if (view === 'mine' && mine === null) return void loadMine();
+    return render();
+  }
+  if (d.rStart) {
+    Object.assign(R, { id: d.rStart, choice: '', labels: [], value: '', evidence: '', note: '' });
+    return render();
+  }
+  if (d.rCancel !== undefined) {
+    R.id = '';
+    return render();
+  }
+  if (d.rChoice) {
+    R.choice = d.rChoice as typeof R.choice;
+    if (R.choice === 'void') R.labels = [];
+    return render();
+  }
+  if (d.rLabel !== undefined) {
+    const m = mine?.find((x) => x.id === R.id);
+    const label = d.rLabel;
+    R.choice = '';
+    if (m?.claim.pick === 'one') R.labels = [label];
+    else R.labels = R.labels.includes(label) ? R.labels.filter((l) => l !== label) : [...R.labels, label];
+    return render();
+  }
+  if (d.rPublish !== undefined && conn) {
+    const m = mine?.find((x) => x.id === R.id);
+    const problems = rProblems();
+    if (!m || problems.length) {
+      const el = document.getElementById('r-problems');
+      if (el) el.textContent = problems.join(' ');
+      return;
+    }
+    if (!canRead(conn)) {
+      notice = { kind: 'error', text: 'Resolving needs permission to read your drafts, which this connection does not have yet. Disconnect, connect again and allow access.' };
+      return render();
+    }
+    busy = true;
+    render();
+    try {
+      published = await resolveClaim(conn, m.id, toResolution(answer(m)!, R.evidence, today, R.note));
+      notice = { kind: 'ok', text: 'Resolved and pinned.' };
+      R.id = '';
+      mine = null;
+      busy = false;
+      return void loadMine();
+    } catch (err) {
+      notice = { kind: 'error', text: err instanceof Error ? err.message : String(err) };
+    }
+    busy = false;
+    return render();
+  }
   if (d.pick) {
     S.pick = d.pick as Pick;
     if (S.pick === 'order') S.rankOnly = true;
@@ -457,6 +611,7 @@ app.addEventListener('click', async (e) => {
     try {
       published = await publishClaim(conn, toMarkdown(toClaim(draft())));
       notice = { kind: 'ok', text: 'Published and pinned.' };
+      mine = null;
     } catch (err) {
       notice = { kind: 'error', text: err instanceof Error ? err.message : String(err) };
       if (/expired/.test(notice.text)) {
@@ -490,7 +645,7 @@ finishConnect()
     if (back) {
       conn = back.connection;
       if (back.keep && typeof back.keep === 'object') Object.assign(S, back.keep);
-      notice = { kind: 'ok', text: `Connected to ${conn.origin.replace(/^https?:\/\//, '')}. Your claim is as you left it.` };
+      notice = { kind: 'ok', text: `Connected to ${conn.origin.replace(/^https?:\/\//, '')}.${S.shape ? ' Your claim is as you left it.' : ''}` };
     }
   })
   .catch((err) => {
