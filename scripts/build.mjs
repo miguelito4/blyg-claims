@@ -36,7 +36,8 @@ const html = (await readFile('web/index.html', 'utf8')).replace('./web/app.js', 
 await writeFile(join(APP, 'index.html'), html);
 await copyFile('web/style.css', join(APP, 'style.css'));
 const forward = (to) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Blyggi</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><script>location.replace('${to}' + location.search + location.hash)</script></head><body><a href="${to}">Blyggi</a></body></html>`;
-for (const [dir, to] of [['', '/app/'], ['new', '/app/'], ['record', '/app/']]) {
+await writeFile(join(OUT, 'index.html'), await readFile('web/landing.html', 'utf8'));
+for (const [dir, to] of [['new', '/app/'], ['record', '/app/']]) {
   await mkdir(join(OUT, dir), { recursive: true });
   await writeFile(join(OUT, dir, 'index.html'), forward(to));
 }

@@ -4,7 +4,7 @@ Prediction journals for [Blygger](https://blygger.org): post probabilistic claim
 
 **Judgment without money.** Provenance is the stake, and readers are the witnesses. No oracle, no token, no market. A blyg already publishes timestamped, versioned and pinnable items, which is everything a prediction journal needs. This repo adds a shape for claims and a scorer that reads it.
 
-> Status: built during the [Blygger Hackathon 2026](https://protocol-institute.org/events/blygger-hackathon-2026/) (November 20–27). **Try the composer: https://miguelito4.github.io/blyg-claims/**. Design notes in [PLAN.md](PLAN.md).
+> Status: built during the [Blygger Hackathon 2026](https://protocol-institute.org/events/blygger-hackathon-2026/) (November 20–27). **Live at https://blyggi.com** (make a claim: https://blyggi.com/new/; any blyg's track record: https://blyggi.com/record/?blyg=caseyjr.org/blyg). Design notes in [PLAN.md](PLAN.md).
 
 ## The composer
 
