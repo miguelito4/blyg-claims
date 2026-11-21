@@ -3,10 +3,10 @@
   "entries": [
     { "name": "Number of other blygs with a claim", "check": { "oracle": "blyg", "metric": "blygs_with_claims", "among": "directory" }, "asks": ["exclude", "op", "threshold"] },
     { "name": "A blyg item exists", "check": { "oracle": "blyg", "metric": "item_exists" }, "asks": ["item"] },
-    { "name": "US consumer prices (CPI-U)", "check": { "oracle": "fred", "value": "CPIAUCSL@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
-    { "name": "US unemployment rate", "check": { "oracle": "fred", "value": "UNRATE@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
-    { "name": "US median weekly earnings, professional workers", "check": { "oracle": "fred", "value": "LEU0254530200Q@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
-    { "name": "A number in a JSON document", "check": { "oracle": "json" }, "asks": ["url", "pointer", "op", "threshold"] },
+    { "name": "US consumer prices (CPI-U)", "check": { "oracle": "data_series", "provider": "fred", "value": "CPIAUCSL@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "US unemployment rate", "check": { "oracle": "data_series", "provider": "fred", "value": "UNRATE@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "US median weekly earnings, professional workers", "check": { "oracle": "data_series", "provider": "fred", "value": "LEU0254530200Q@{date}" }, "asks": ["date", "as_of", "op", "threshold"] },
+    { "name": "A number in a JSON document", "check": { "oracle": "web_data" }, "asks": ["url", "pointer", "op", "threshold"] },
     { "name": "Someone decides", "check": { "oracle": "judgment" }, "asks": ["by", "evidence"] }
   ]
 }

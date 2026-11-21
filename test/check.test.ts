@@ -15,25 +15,27 @@ const hackathon: Check = {
 
 // The earnings claim, written as a check, with its own fallback.
 const earnings: Check = {
-  oracle: 'fred',
+  oracle: 'data_series',
+  provider: 'fred',
   value: 'LEU0254530200Q@2030-10-01 / mean(CPIAUCSL@2030-10-01..2030-12-01)',
   as_of: '2031-03-31',
   op: '<=',
   threshold: 4.3,
-  fallback: { oracle: 'fred', value: 'LEU0254530200Q@2030-07-01 / mean(CPIAUCSL@2030-07-01..2030-09-01)', as_of: '2031-03-31', op: '<=', threshold: 4.3 },
+  fallback: { oracle: 'data_series', provider: 'fred', value: 'LEU0254530200Q@2030-07-01 / mean(CPIAUCSL@2030-07-01..2030-09-01)', as_of: '2031-03-31', op: '<=', threshold: 4.3 },
 };
 
 test('valid checks for each oracle', () => {
   assert.deepEqual(checkCheck(hackathon), []);
   assert.deepEqual(checkCheck(earnings), []);
-  assert.deepEqual(checkCheck({ oracle: 'json', url: 'https://example.org/stats.json', pointer: '/data/0/value', op: '>', threshold: 100 }), []);
+  assert.deepEqual(checkCheck({ oracle: 'web_data', url: 'https://example.org/stats.json', pointer: '/data/0/value', op: '>', threshold: 100 }), []);
   assert.deepEqual(checkCheck({ oracle: 'judgment', by: 'author', evidence: 'https://lmarena.ai/leaderboard/text' }), []);
   assert.deepEqual(checkCheck({ oracle: 'judgment', by: ['https://venkateshrao.com/blyg/'] }), []);
 });
 
 test('oracle names are a closed list: no free text', () => {
-  assert.match(checkCheck({ ...hackathon, oracle: 'Federal Reserve of St. Louis' })[0], /must be one of blyg, fred, json, judgment/);
-  assert.match(checkCheck({ ...hackathon, oracle: 'FRED' })[0], /must be one of/);
+  assert.match(checkCheck({ ...hackathon, oracle: 'Federal Reserve of St. Louis' })[0], /must be one of blyg, data_series, web_data, judgment/);
+  assert.match(checkCheck({ ...hackathon, oracle: 'fred' })[0], /must be one of/, 'a provider is not a kind of source');
+  assert.match(checkCheck({ ...earnings, provider: 'Federal Reserve of St. Louis' })[0], /provider/);
 });
 
 test('each oracle checks its own parameters', () => {
@@ -41,13 +43,13 @@ test('each oracle checks its own parameters', () => {
   assert.match(checkCheck({ oracle: 'blyg', metric: 'item_exists', op: '==', threshold: true })[0], /item/);
   assert.match(checkCheck({ ...earnings, value: 'inflation went up' })[0], /SERIES@DATE/);
   assert.match(checkCheck({ ...earnings, as_of: 'soon' })[0], /as_of/);
-  assert.match(checkCheck({ oracle: 'json', url: 'ftp://x', pointer: 'data', op: '>', threshold: 1 }).join(' '), /url.*pointer/s);
+  assert.match(checkCheck({ oracle: 'web_data', url: 'ftp://x', pointer: 'data', op: '>', threshold: 1 }).join(' '), /url.*pointer/s);
   assert.match(checkCheck({ oracle: 'judgment', by: 'everyone' })[0], /by/);
 });
 
 test('automatic checks need a comparison; errors in a fallback are found too', () => {
-  assert.match(checkCheck({ oracle: 'json', url: 'https://example.org/x.json', pointer: '/n' }).join(' '), /op.*threshold/s);
-  assert.match(checkCheck({ ...earnings, fallback: { oracle: 'fred', value: 'X@2030-01-01', as_of: 'nope', op: '<=', threshold: 1 } })[0], /check\.fallback\.as_of/);
+  assert.match(checkCheck({ oracle: 'web_data', url: 'https://example.org/x.json', pointer: '/n' }).join(' '), /op.*threshold/s);
+  assert.match(checkCheck({ ...earnings, fallback: { oracle: 'data_series', provider: 'fred', value: 'X@2030-01-01', as_of: 'nope', op: '<=', threshold: 1 } })[0], /check\.fallback\.as_of/);
 });
 
 test('automatic versus judgment', () => {
