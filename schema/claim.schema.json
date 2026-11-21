@@ -2,10 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/miguelito4/blyg-claims/schema/claim.schema.json",
   "title": "Blygger claim block",
-  "description": "The JSON inside a fenced `claim` block in a blyg item's content_md. A `json` or unlabeled fence also counts when its object has both `probability` and `resolves_by`.",
+  "description": "The JSON inside a fenced `claim` block in a blyg item's content_md. A `json` or unlabeled fence also counts when its object has `resolves_by` and either `probability` or `shape`.",
   "type": "object",
   "required": [
-    "probability",
     "resolves_by"
   ],
   "properties": {
@@ -14,11 +13,73 @@
       "minLength": 1,
       "description": "The statement being forecast, in one sentence. Recommended."
     },
+    "shape": {
+      "enum": [
+        "binary",
+        "choice",
+        "quantity",
+        "record"
+      ],
+      "description": "binary: yes or no. choice: from a list (one, set or order). quantity: how much. record: just record it, never scored. Absent with a probability means binary."
+    },
     "probability": {
       "type": "number",
       "exclusiveMinimum": 0,
       "exclusiveMaximum": 1,
       "description": "The author's probability that the claim resolves true."
+    },
+    "pick": {
+      "enum": [
+        "one",
+        "set",
+        "order"
+      ],
+      "description": "choice: pick the winner, pick which ones make it, or put the top ones in order."
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "description": "choice: the outcomes, in the writer's order. Percentages optional (never for order): for one they add to 1, for set to `size`."
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "choice: how many make it (set) or how many are ranked (order)."
+    },
+    "range": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "quantity: [low, high]."
+    },
+    "confidence": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1,
+      "description": "quantity: how sure the true value lands in the range."
+    },
+    "unit": {
+      "type": "string"
     },
     "resolves_by": {
       "type": "string",
@@ -33,6 +94,11 @@
     "check": {
       "$ref": "#/$defs/check",
       "description": "How the outcome is decided. The claim carries the full specification, so it resolves without any catalog or service."
+    },
+    "voids_if": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Written before the outcome is known: what would cancel the claim. Void claims are not scored."
     },
     "provenance": {
       "type": "string",
@@ -59,6 +125,75 @@
     }
   },
   "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "required": [
+            "shape"
+          ]
+        }
+      },
+      "then": {
+        "required": [
+          "probability"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "shape": {
+            "const": "binary"
+          }
+        },
+        "required": [
+          "shape"
+        ]
+      },
+      "then": {
+        "required": [
+          "probability"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "shape": {
+            "const": "choice"
+          }
+        },
+        "required": [
+          "shape"
+        ]
+      },
+      "then": {
+        "required": [
+          "pick",
+          "outcomes"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "shape": {
+            "const": "quantity"
+          }
+        },
+        "required": [
+          "shape"
+        ]
+      },
+      "then": {
+        "required": [
+          "range",
+          "confidence"
+        ]
+      }
+    }
+  ],
   "$defs": {
     "check": {
       "description": "Four kinds of source, by how trust in the answer is established: the protocol, a publisher's versioned statistics, an unversioned web document, or people.",
