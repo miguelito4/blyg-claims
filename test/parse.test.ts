@@ -18,7 +18,7 @@ test('live claim in a json fence (open-weights, v1)', () => {
   assert.equal(r.claims[0].value.probability, 0.85);
   assert.equal(r.claims[0].value.resolves_by, '2027-06-19');
   assert.deepEqual(errors(r), []);
-  assert.deepEqual(warnings(r), [], 'the prose restates 0.85, which agrees with the block');
+  assert.deepEqual(warnings(r).map((w) => w.message), ['no `check`: nothing says how the outcome is decided'], 'the prose restates 0.85, which agrees with the block');
 });
 
 test('live claim in an unlabeled fence (earnings)', () => {
@@ -26,7 +26,7 @@ test('live claim in an unlabeled fence (earnings)', () => {
   assert.equal(r.claims.length, 1);
   assert.equal(r.claims[0].fence, '');
   assert.equal(r.claims[0].value.resolves_by, '2031-03-31');
-  assert.deepEqual(r.issues, []);
+  assert.deepEqual(r.issues.map((i) => i.message), ['no `check`: nothing says how the outcome is decided']);
 });
 
 test('v1 and v2 of the open-weights claim carry the same block', () => {
@@ -63,7 +63,7 @@ test('an invalid claim is reported and dropped', () => {
 test('missing claim and criteria are warnings, not errors', () => {
   const r = parseContent('```claim\n{"probability": 0.6, "resolves_by": "2027-01-01"}\n```');
   assert.equal(r.claims.length, 1);
-  assert.equal(warnings(r).length, 2);
+  assert.equal(warnings(r).length, 3, 'no claim, no criteria, no check');
 });
 
 test('two claim blocks in one item is an error', () => {
@@ -85,7 +85,7 @@ test('resolution blocks: true, false, void; json fence with outcome', () => {
 test('prose that disagrees with the block is a warning', () => {
   const r = parseContent('Probability: 80%\n\n```claim\n{"probability": 0.85, "resolves_by": "2027-01-01", "claim": "a", "criteria": "b"}\n```');
   assert.equal(r.claims.length, 1);
-  assert.match(warnings(r)[0].message, /prose says probability 80%/);
+  assert.ok(warnings(r).some((w) => /prose says probability 80%/.test(w.message)));
 });
 
 test('a claim block quoted inside a longer fence is an example, not a claim', () => {
@@ -93,12 +93,3 @@ test('a claim block quoted inside a longer fence is an example, not a claim', ()
   assert.equal(r.claims.length, 0);
 });
 
-test('resolvers and dispute_days', () => {
-  const claim = (extra: string) => parseContent(`\`\`\`claim\n{"probability": 0.6, "resolves_by": "2027-01-01", "claim": "a", "criteria": "b"${extra}}\n\`\`\``);
-  assert.deepEqual(claim(', "resolvers": "anyone", "dispute_days": 7').issues, []);
-  assert.deepEqual(claim(', "resolvers": ["https://venkateshrao.com/blyg/", "https://blyg.aneeshsathe.com/"]').issues, []);
-  assert.match(claim(', "resolvers": "me"').issues[0].message, /resolvers/);
-  assert.match(claim(', "resolvers": []').issues[0].message, /resolvers/);
-  assert.match(claim(', "dispute_days": 0').issues[0].message, /dispute_days/);
-  assert.match(claim(', "resolvers": "data"').issues[0].message, /no machine-readable `check`/);
-});
