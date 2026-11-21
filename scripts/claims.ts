@@ -12,6 +12,10 @@ const DIRECTORY = 'https://blygger.com/blygs.json';
 const KNOWN = ['https://caseyjr.org/blyg/', 'https://venkateshrao.com/blyg/', 'https://blyg.aneeshsathe.com/'];
 const OUT = process.argv[2] ?? '_site/claims.json';
 const MAX = 30;
+const PER_BLYG_MS = 25_000;
+
+const within = <T>(ms: number, p: Promise<T>): Promise<T> =>
+  Promise.race([p, new Promise<T>((_, no) => setTimeout(() => no(new Error(`gave up after ${ms / 1000}s`)), ms).unref())]);
 
 export interface TickerClaim {
   claim: string;
@@ -51,35 +55,41 @@ async function origins(): Promise<string[]> {
   return [...list];
 }
 
-async function main() {
+async function read(origin: string): Promise<TickerClaim[]> {
+  const reader = await BlygReader.open(origin, { cacheDir: null });
+  const journal = await collect(reader);
   const out: TickerClaim[] = [];
-  for (const origin of await origins()) {
-    try {
-      const reader = await BlygReader.open(origin, { cacheDir: null });
-      const journal = await collect(reader);
-      for (const { item, pins } of journal.entries) {
-        const parsed = parseContent(item.content_md);
-        const c = parsed.claims[0]?.value as Record<string, any> | undefined;
-        if (!c?.claim || !item.page) continue;
-        out.push({
-          claim: String(c.claim),
-          sure: sure(c),
-          by: String(c.resolves_by ?? ''),
-          shape: shapeOf(c) ?? 'binary',
-          pinned: pins.length > 0,
-          resolved: parsed.resolutions.length > 0,
-          blyg: journal.title ?? new URL(journal.origin).host,
-          page: new URL(item.page, journal.origin).href,
-        });
-      }
-    } catch (e) {
-      console.error(`${origin}: ${e instanceof Error ? e.message : e}`);
-    }
+  for (const { item, pins } of journal.entries) {
+    const parsed = parseContent(item.content_md);
+    const c = parsed.claims[0]?.value as Record<string, any> | undefined;
+    if (!c?.claim || !item.page) continue;
+    out.push({
+      claim: String(c.claim),
+      sure: sure(c),
+      by: String(c.resolves_by ?? ''),
+      shape: shapeOf(c) ?? 'binary',
+      pinned: pins.length > 0,
+      resolved: parsed.resolutions.length > 0,
+      blyg: journal.title ?? new URL(journal.origin).host,
+      page: new URL(item.page, journal.origin).href,
+    });
   }
+  return out;
+}
+
+async function main() {
+  const list = await origins();
+  const results = await Promise.allSettled(list.map((o) => within(PER_BLYG_MS, read(o))));
+  const out: TickerClaim[] = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') out.push(...r.value);
+    else console.error(`${list[i]}: ${r.reason instanceof Error ? r.reason.message : r.reason}`);
+  });
   out.sort((a, b) => Number(a.resolved) - Number(b.resolved) || a.by.localeCompare(b.by));
   if (!out.length) throw new Error('no claims found');
   await writeFile(OUT, JSON.stringify({ at: new Date().toISOString(), claims: out.slice(0, MAX) }, null, 1));
-  console.log(`${OUT}: ${Math.min(out.length, MAX)} claims`);
+  console.log(`${OUT}: ${Math.min(out.length, MAX)} claims from ${list.length} blygs`);
+  process.exit(0);
 }
 
 main().catch((e) => {
