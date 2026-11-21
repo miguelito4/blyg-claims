@@ -61,15 +61,16 @@
   "additionalProperties": true,
   "$defs": {
     "check": {
+      "description": "Four kinds of source, by how trust in the answer is established: the protocol, a publisher's versioned statistics, an unversioned web document, or people.",
       "oneOf": [
         {
           "$ref": "#/$defs/blyg"
         },
         {
-          "$ref": "#/$defs/fred"
+          "$ref": "#/$defs/data_series"
         },
         {
-          "$ref": "#/$defs/json"
+          "$ref": "#/$defs/web_data"
         },
         {
           "$ref": "#/$defs/judgment"
@@ -78,7 +79,7 @@
     },
     "blyg": {
       "type": "object",
-      "description": "Blygger itself as the oracle.",
+      "description": "Blygger itself: items, claims and pins on blygs. Trust comes from the protocol (pins, content hashes).",
       "required": [
         "oracle",
         "metric",
@@ -145,11 +146,12 @@
         }
       }
     },
-    "fred": {
+    "data_series": {
       "type": "object",
-      "description": "A FRED series, read as published on as_of (ALFRED vintage).",
+      "description": "A published statistical series, read as it was published on as_of (a fixed data vintage), so every reader sees the same numbers. The provider is a parameter.",
       "required": [
         "oracle",
+        "provider",
         "value",
         "as_of",
         "op",
@@ -157,11 +159,17 @@
       ],
       "properties": {
         "oracle": {
-          "const": "fred"
+          "const": "data_series"
+        },
+        "provider": {
+          "enum": [
+            "fred"
+          ],
+          "description": "Who publishes the series. FRED (with ALFRED vintages) first; others added as adapters."
         },
         "value": {
           "type": "string",
-          "description": "SERIES@DATE, mean(SERIES@START..END), and + - * / with parentheses. Series IDs are FRED's own, uppercase."
+          "description": "SERIES@DATE, mean(SERIES@START..END), and + - * / with parentheses. Series IDs are the provider's own."
         },
         "as_of": {
           "type": "string",
@@ -189,9 +197,9 @@
         }
       }
     },
-    "json": {
+    "web_data": {
       "type": "object",
-      "description": "A field in a JSON document at a URL.",
+      "description": "A value in a structured document on the web (JSON now; CSV later). Not versioned by its publisher, so the value is archived when read.",
       "required": [
         "oracle",
         "url",
@@ -201,7 +209,7 @@
       ],
       "properties": {
         "oracle": {
-          "const": "json"
+          "const": "web_data"
         },
         "url": {
           "type": "string",
@@ -235,7 +243,7 @@
     },
     "judgment": {
       "type": "object",
-      "description": "Someone reads the evidence and decides. Shown as 'resolves by judgment'.",
+      "description": "People read the evidence and decide. Shown as 'resolves by judgment'.",
       "required": [
         "oracle",
         "by"

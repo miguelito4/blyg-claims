@@ -3,7 +3,12 @@
 // mean the same source write the same thing. The claim carries the whole
 // specification; resolving it never consults a catalog or a service.
 
-export const ORACLES = ['blyg', 'fred', 'json', 'judgment'] as const;
+// Four kinds of source, mutually exclusive by how trust in the answer is
+// established, and together exhaustive: an outcome is computed from the
+// protocol, from a publisher's versioned statistics or from an unversioned web
+// document, or else people decide it.
+export const ORACLES = ['blyg', 'data_series', 'web_data', 'judgment'] as const;
+export const PROVIDERS = ['fred'] as const;
 export type OracleType = (typeof ORACLES)[number];
 export const OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
 export type Op = (typeof OPS)[number];
@@ -22,14 +27,15 @@ export interface BlygCheck extends Comparison {
   item?: string;
 }
 
-export interface FredCheck extends Comparison {
-  oracle: 'fred';
+export interface DataSeriesCheck extends Comparison {
+  oracle: 'data_series';
+  provider: (typeof PROVIDERS)[number];
   value: string;
   as_of: string;
 }
 
-export interface JsonCheck extends Comparison {
-  oracle: 'json';
+export interface WebDataCheck extends Comparison {
+  oracle: 'web_data';
   url: string;
   pointer: string;
 }
@@ -40,7 +46,7 @@ export interface JudgmentCheck {
   evidence?: string;
 }
 
-export type Check = BlygCheck | FredCheck | JsonCheck | JudgmentCheck;
+export type Check = BlygCheck | DataSeriesCheck | WebDataCheck | JudgmentCheck;
 
 /** "automatic" checks are computed from public data; "judgment" ones are decided by people. */
 export function resolvesBy(check: Check): 'automatic' | 'judgment' {
@@ -79,11 +85,12 @@ export function checkCheck(value: unknown, path = 'check'): string[] {
       if ('exclude' in value && !(Array.isArray(value.exclude) && value.exclude.every(isUrl))) errs.push(`\`${path}.exclude\` must be a list of blyg URLs`);
       if (value.metric === 'item_exists' && !isUrl(value.item)) errs.push(`\`${path}.item\` must be the item's URL`);
       break;
-    case 'fred':
+    case 'data_series':
+      if (!(PROVIDERS as readonly unknown[]).includes(value.provider)) errs.push(`\`${path}.provider\` must be one of ${PROVIDERS.join(', ')}`);
       if (typeof value.value !== 'string' || !/[A-Z0-9]+@/.test(value.value)) errs.push(`\`${path}.value\` must name at least one SERIES@DATE`);
       if (typeof value.as_of !== 'string' || !DATE.test(value.as_of)) errs.push(`\`${path}.as_of\` must be a date in YYYY-MM-DD form`);
       break;
-    case 'json':
+    case 'web_data':
       if (!isUrl(value.url)) errs.push(`\`${path}.url\` must be an http(s) URL`);
       if (typeof value.pointer !== 'string' || !(value.pointer === '' || value.pointer.startsWith('/'))) errs.push(`\`${path}.pointer\` must be a JSON Pointer such as /data/0/value`);
       break;
