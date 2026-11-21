@@ -79,7 +79,8 @@ test('resolution blocks: true, false, void; json fence with outcome', () => {
     assert.deepEqual(r.issues, []);
   }
   assert.equal(parseContent('```json\n{"outcome": false, "evidence": ["x"]}\n```').resolutions.length, 1);
-  assert.match(errors(parseContent('```resolution\n{"outcome": "yes"}\n```'))[0].message, /outcome/);
+  assert.match(errors(parseContent('```resolution\n{"outcome": {}}\n```'))[0].message, /outcome/);
+  assert.equal(parseContent('```resolution\n{"outcome": "Brazil", "evidence": ["x"]}\n```').resolutions.length, 1, 'a label resolves a choice');
 });
 
 test('prose that disagrees with the block is a warning', () => {

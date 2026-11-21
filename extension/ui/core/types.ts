@@ -2,10 +2,24 @@
 // validators the parser uses. Hand-written so the core has no dependencies.
 
 import { checkCheck, type Check } from './check.ts';
+import { checkShape, shapeOf, type Outcome, type Pick, type Shape } from './shapes.ts';
 
 export interface ClaimBlock {
   claim?: string;
-  probability: number;
+  /** Absent means binary (shapes.ts). */
+  shape?: Shape;
+  /** binary */
+  probability?: number;
+  /** choice */
+  pick?: Pick;
+  outcomes?: Outcome[];
+  size?: number;
+  /** quantity */
+  range?: [number, number];
+  confidence?: number;
+  unit?: string;
+  /** Written before the outcome is known: what would cancel the claim. */
+  voids_if?: string;
   resolves_by: string;
   criteria?: string;
   provenance?: string;
@@ -17,10 +31,11 @@ export interface ClaimBlock {
   [extra: string]: unknown;
 }
 
-export type Outcome = true | false | 'void';
+/** binary: true/false; choice: a label or labels; quantity: a number; any shape: "void". */
+export type ResolvedOutcome = boolean | 'void' | string | string[] | number;
 
 export interface ResolutionBlock {
-  outcome: Outcome;
+  outcome: ResolvedOutcome;
   resolved_at?: string;
   evidence?: string[];
   note?: string;
@@ -63,9 +78,10 @@ export function checkClaim(value: unknown): { errors: string[]; warnings: string
   const errors: string[] = [];
   const warnings: string[] = [];
   if (!isObject(value)) return { errors: ['a claim block must be a JSON object'], warnings };
-  const p = value.probability;
-  if (typeof p !== 'number' || !Number.isFinite(p)) errors.push('`probability` must be a number');
-  else if (p <= 0 || p >= 1) errors.push('`probability` must be strictly between 0 and 1');
+  const shaped = checkShape(value);
+  errors.push(...shaped.errors);
+  warnings.push(...shaped.warnings);
+  const record = shapeOf(value) === 'record';
   if (!isIsoDate(value.resolves_by)) errors.push('`resolves_by` must be a date in YYYY-MM-DD form');
   for (const key of ['claim', 'criteria', 'provenance', 'discussion']) optionalString(value, key, errors);
   optionalStringArray(value, 'tags', errors);
@@ -73,9 +89,9 @@ export function checkClaim(value: unknown): { errors: string[]; warnings: string
     errors.push('`commit` must be sha256: followed by 64 lowercase hex digits');
   }
   if ('check' in value) errors.push(...checkCheck(value.check));
-  else warnings.push('no `check`: nothing says how the outcome is decided');
+  else if (!record) warnings.push('no `check`: nothing says how the outcome is decided');
   if (!('claim' in value)) warnings.push('no `claim`: the statement is only in the prose');
-  if (!('criteria' in value)) warnings.push('no `criteria`: nobody else can resolve this');
+  if (!('criteria' in value) && !record) warnings.push('no `criteria`: nobody else can resolve this');
   return { errors, warnings };
 }
 
@@ -83,9 +99,10 @@ export function checkResolution(value: unknown): { errors: string[]; warnings: s
   const errors: string[] = [];
   const warnings: string[] = [];
   if (!isObject(value)) return { errors: ['a resolution block must be a JSON object'], warnings };
-  if (!(value.outcome === true || value.outcome === false || value.outcome === 'void')) {
-    errors.push('`outcome` must be true, false or "void"');
-  }
+  const o = value.outcome;
+  const ok = typeof o === 'boolean' || (typeof o === 'string' && o.trim() !== '') || (typeof o === 'number' && Number.isFinite(o)) ||
+    (Array.isArray(o) && o.length > 0 && o.every((x) => typeof x === 'string' && x.trim() !== ''));
+  if (!ok) errors.push('`outcome` must be true, false, "void", an outcome label, a list of labels, or a number');
   if ('resolved_at' in value && !isIsoDate(value.resolved_at)) errors.push('`resolved_at` must be a date in YYYY-MM-DD form');
   optionalStringArray(value, 'evidence', errors);
   optionalString(value, 'note', errors);

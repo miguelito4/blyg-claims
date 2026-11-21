@@ -3,8 +3,8 @@
 //
 // Which fences count:
 // - `claim` and `resolution` fences always count, and invalid JSON in them is an error.
-// - A `json` or unlabeled fence counts as a claim when its object has both
-//   `probability` and `resolves_by`, and as a resolution when it has `outcome`
+// - A `json` or unlabeled fence counts as a claim when its object has
+//   `resolves_by` and either `probability` or `shape`, and as a resolution when it has `outcome`
 //   and no `probability`. Anything else in such a fence is ordinary code and is
 //   left alone, as is every other fence.
 
@@ -50,7 +50,7 @@ export function parseContent(markdown: string): Parsed {
     }
     let kind: 'claim' | 'resolution' | null = strict ? (f.info as 'claim' | 'resolution') : null;
     if (!kind && isObject(json.value)) {
-      if ('probability' in json.value && 'resolves_by' in json.value) kind = 'claim';
+      if ('resolves_by' in json.value && ('probability' in json.value || 'shape' in json.value)) kind = 'claim';
       else if ('outcome' in json.value && !('probability' in json.value)) kind = 'resolution';
     }
     if (!kind) continue;
