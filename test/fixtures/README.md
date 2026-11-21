@@ -8,3 +8,5 @@
 - `08sexhm…` (hackathon-week claim, a thread): one version, pinned (2026-11-20T21:18:29Z), `claim` fence, p=0.85, resolves 2026-11-27. The first claim that resolves during the hackathon.
 
 Only the three claim items' documents are captured; the index lists all 93 items. Tests serve these files through a fake `fetch`, so nothing touches the network.
+
+`live/venkateshrao/` (captured 2026-11-21): the manifest and `32c0npw…`, the first claim on a blyg other than caseyjr.org/blyg. A thread, v2, not pinned, unlabeled fence, `criteria` "Consensus of mathematics community" (a judgment oracle), and a comment arguing against forcing every claim into one binary-probability shape.
