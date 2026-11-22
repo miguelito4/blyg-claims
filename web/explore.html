@@ -80,6 +80,16 @@ select{width:100%;min-height:42px;padding:0 12px;border-radius:12px;border:1px s
 .seal .ok{color:var(--acc)}
 .seal .warn{color:var(--due)}
 .seal .bad{color:var(--bad)}
+.forecasts{padding:12px 14px;border-radius:14px;background:#0f0f0e;border:1px solid var(--line)}
+.forecasts h4{margin:0 0 4px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.forecasts .spread{margin:0 0 6px;font-size:14px;color:var(--muted)}
+.forecasts .spread b{color:var(--acc)}
+.forecasts ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px}
+.forecasts li{display:flex;gap:10px;align-items:baseline}
+.forecasts li a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.forecasts li a:hover{text-decoration:underline}
+.forecasts li b{font:700 15px 'Space Grotesk',sans-serif;color:var(--acc)}
+.forecasts .ok{color:var(--acc)}.forecasts .warn{color:var(--due)}
 .outcome{padding:10px 12px;border-radius:12px;background:#0f0f0e;border:1px solid var(--line);font-size:14px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
 .btn{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:20px;font-weight:700;font-size:14px;text-decoration:none;border:1px solid var(--line)}
@@ -240,11 +250,23 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
     box.querySelectorAll('button').forEach((b) => b.onclick = () => { F[key].has(b.dataset.k) ? F[key].delete(b.dataset.k) : F[key].add(b.dataset.k); render(); });
   };
 
-  const card = (c, i) => {
+  // The forecasts on one claim: everyone who forked it (and the original), with the spread of their numbers.
+  const forecasts = (members) => {
+    if (members.length < 2) return '';
+    const ps = members.map((m) => /^(\d+)%$/.exec(m.sure)).filter(Boolean).map((m) => +m[1]);
+    const spread = ps.length === members.length && ps.length > 1
+      ? `<p class="spread">Average <b>${Math.round(ps.reduce((a, b) => a + b, 0) / ps.length)}%</b> · range ${Math.min(...ps)}–${Math.max(...ps)}%</p>` : '';
+    return `<div class="forecasts"><h4>${members.length} forecasts</h4>${spread}<ul>${members.map((m) => `<li><a href="${esc(m.page)}">${esc(m.blyg)}</a><b>${esc(m.sure)}</b><span class="${m.pinned ? 'ok' : 'warn'}" title="${m.pinned ? 'Pinned' : 'Not pinned yet'}">${m.pinned ? '●' : '○'}</span></li>`).join('')}</ul></div>`;
+  };
+
+  const card = (c, i, members = [c]) => {
     const k = kindOf(c);
     const p = /^(\d+)%$/.exec(c.sure);
     const [shape, pick] = SHAPE_Q[k] || ['binary', ''];
-    const again = `/new/?${new URLSearchParams({ q: c.claim, shape, ...(pick ? { pick } : {}) })}`;
+    // A pinned claim can be forked (§5.6), which links your forecast to it; an unpinned one only copied.
+    const again = c.pinned && c.pinnedVersion
+      ? `/new/?${new URLSearchParams({ fork: c.origin, id: c.id, v: String(c.pinnedVersion) })}`
+      : `/new/?${new URLSearchParams({ q: c.claim, shape, ...(pick ? { pick } : {}) })}`;
     const seal = c.pinned
       ? `<span class="ok">● Pinned v${c.pinnedVersion}${c.pinnedAt ? ' · ' + esc(fmt(c.pinnedAt.slice(0, 10))) : ''}</span>${c.hashOk ? '<span class="ok">Hash ✓</span>' : '<span class="bad">Hash doesn\'t match</span>'}${c.changed ? '<span class="bad">Edited after pinning; the pinned version counts</span>' : ''}`
       : '<span class="warn">○ Not pinned yet: the author can still change it</span>';
@@ -258,6 +280,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
         <span class="crit" title="${esc(c.check)}">Checked by: ${esc(c.check)}</span>
       </div>
       ${c.outcome ? `<div class="outcome"><b>Outcome:</b> ${esc(c.outcome)}${c.brier != null ? ` · Brier ${c.brier.toFixed(3)}` : ''}</div>` : ''}
+      ${forecasts(members)}
       <div class="seal">${seal}</div>
       <div class="actions"><a class="btn" href="${esc(c.page)}">Read it</a>${c.resolved ? '' : `<a class="btn primary" href="${esc(again)}">Forecast this too</a>`}</div>
     </article>`;
@@ -269,8 +292,17 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
     chips('topic', null, (c) => c.topics);
     chips('kind', KIND, (c) => [kindOf(c)]);
     chips('decided', DECIDED, (c) => [c.decidedBy]);
-    $('count').textContent = `${shown.length} of ${DATA.claims.length} claims`;
-    $('cards').innerHTML = shown.length ? shown.map(card).join('') : '<div class="empty">No claims match. <button class="clear" onclick="document.getElementById(\'clear\').click()">Clear filters</button></div>';
+    // One card per claim: a claim and its forks share a group, led by the original where the scan has it.
+    const groups = [];
+    const at = new Map();
+    for (const c of shown) {
+      const key = c.group || c.page;
+      if (!at.has(key)) { at.set(key, groups.length); groups.push([]); }
+      groups[at.get(key)].push(c);
+    }
+    const lead = (g) => g.find((m) => !m.forkedFrom) || g[0];
+    $('count').textContent = `${shown.length} of ${DATA.claims.length} claims${groups.length < shown.length ? ` · ${groups.length} questions` : ''}`;
+    $('cards').innerHTML = shown.length ? groups.map((g, i) => card(lead(g), i, g)).join('') : '<div class="empty">No claims match. <button class="clear" onclick="document.getElementById(\'clear\').click()">Clear filters</button></div>';
     $('cards').querySelectorAll('[data-topic]').forEach((b) => b.onclick = () => { F.topic = new Set([b.dataset.topic]); render(); scrollTo({ top: $('claims').offsetTop - 10, behavior: 'smooth' }); });
     $('blyg').value = F.blyg; $('sort').value = F.sort; if ($('q').value !== F.q) $('q').value = F.q;
     writeUrl();

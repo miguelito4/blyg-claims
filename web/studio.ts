@@ -33,16 +33,36 @@ export interface Published {
   url: string;
 }
 
-export async function publishClaim(c: Connection, contentMd: string): Promise<Published> {
-  const created = await call(c, 'POST', '/items', { kind: 'fragment', contentMd });
-  const id = created.id as string;
+/** A pinned claim on another blyg that a new forecast forks (protocol §5.6), so readers can group the two. */
+export interface ForkOf {
+  origin: string;
+  id: string;
+  version: number;
+}
+
+export async function publishClaim(c: Connection, contentMd: string, fork?: ForkOf): Promise<Published> {
+  let id: string;
+  let revision: number;
+  let kind = 'fragment';
+  if (fork) {
+    // The node fetches the pinned original and records forked_from; the forecaster's own claim then replaces its text.
+    const created = await call(c, 'POST', '/items', { mode: 'fork', source: fork });
+    id = created.id as string;
+    kind = (created.kind as string) ?? kind;
+    const updated = await call(c, 'PATCH', `/items/${encodeURIComponent(id)}`, { contentMd, expectedRevision: created.revision });
+    revision = updated.revision as number;
+  } else {
+    const created = await call(c, 'POST', '/items', { kind: 'fragment', contentMd });
+    id = created.id as string;
+    revision = created.revision as number;
+  }
   const pub = await call(c, 'POST', `/items/${encodeURIComponent(id)}/publish`, {
-    expectedRevision: created.revision,
-    note: 'Claim published with Blyggi',
+    expectedRevision: revision,
+    note: fork ? 'Forecast published with Blyggi' : 'Claim published with Blyggi',
   });
   const version = pub.version as number;
   await call(c, 'PUT', `/items/${encodeURIComponent(id)}/versions/${version}/pin`, { expectedRevision: pub.revision });
-  return { id, version, url: `${c.origin}f/${id}/` };
+  return { id, version, url: `${c.origin}${kind === 'thread' ? 't' : 'f'}/${id}/` };
 }
 
 export interface MyClaim {

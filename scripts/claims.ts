@@ -10,6 +10,7 @@
 import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { BlygReader } from '../src/fetch.ts';
+import { groupKeys, reference } from '../src/group.ts';
 import { collect } from '../src/collect.ts';
 import { parseContent } from '../extension/ui/core/parse.ts';
 import { shapeOf } from '../extension/ui/core/shapes.ts';
@@ -56,6 +57,12 @@ export interface ExploreClaim {
   outcome: string | null;
   brier: number | null;
   topics: string[];
+  /** The claim this one forked (§5.6), when it is a forecast on someone else's claim. */
+  forkedFrom: { origin: string; id: string; version?: number } | null;
+  /** The claim that counts (the earliest pinned version that carried it), so a forecast on it can copy it exactly. */
+  block: ClaimBlock;
+  /** Shared by a claim and all its forks: the address of the claim the chain starts from. */
+  group: string;
 }
 
 export interface ExploreBlyg {
@@ -149,6 +156,9 @@ async function read(origin: string): Promise<{ blyg: ExploreBlyg; claims: Explor
       outcome: resolution ? describeOutcome(resolution) : null,
       brier,
       topics: topics(String(claim.claim)),
+      forkedFrom: reference(item.forked_from),
+      block: claim,
+      group: '',
     });
   }
   const sum = summarize(parts);
@@ -196,6 +206,8 @@ async function main() {
     }
   });
   if (!claims.length) throw new Error('no claims found');
+  const keys = groupKeys(claims.map((c) => ({ origin: c.origin, id: c.id, forkedFrom: c.forkedFrom })));
+  claims.forEach((c, i) => (c.group = keys[i]));
   const rank = { due: 0, open: 1, record: 2, resolved: 3, void: 4, withdrawn: 5 };
   claims.sort((a, b) => rank[a.status] - rank[b.status] || a.by.localeCompare(b.by));
   await writeFile(OUT, JSON.stringify({ at: new Date().toISOString(), scanned: list.length - skipped.length, skipped, blygs, claims }));

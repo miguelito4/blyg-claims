@@ -1,11 +1,12 @@
 // The composer: plain questions in, a checkable claim out. The engineering
 // (shapes, oracles, JSON) is built from the answers and only shown on request.
 
-import { mistakes, toClaim, toMarkdown, withCatchAll, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
+import { describeCheck, fromClaim, mistakes, toClaim, toMarkdown, withCatchAll, type Draft, type Mistake } from '../extension/ui/core/compose.ts';
+import type { ClaimBlock } from '../extension/ui/core/types.ts';
 import { resolvesBy, type Check } from '../extension/ui/core/check.ts';
 import { PICKS, SHAPES, SOMETHING_ELSE, type Pick, type Shape } from '../extension/ui/core/shapes.ts';
 import { canRead, connect, disconnect, findBlyg, finishConnect, savedConnection, type Connection } from './oauth.ts';
-import { listClaims, publishClaim, resolveClaim, type MyClaim, type Published } from './studio.ts';
+import { listClaims, publishClaim, resolveClaim, type ForkOf, type MyClaim, type Published } from './studio.ts';
 import { checkAnswer, toResolution, describeOutcome, type Answer } from '../extension/ui/core/resolve.ts';
 import { shapeOf } from '../extension/ui/core/shapes.ts';
 import { loadRecord, type TrackRecord } from './record.ts';
@@ -18,6 +19,14 @@ const today = new Date().toISOString().slice(0, 10);
 
 /** A claim started on the home page arrives as ?q=…&shape=…&pick=…; only an empty composer takes it. */
 function startFrom(params: URLSearchParams): void {
+  const forkOrigin = params.get('fork');
+  const forkId = params.get('id');
+  const forkVersion = Number(params.get('v'));
+  if (forkOrigin && forkId && Number.isInteger(forkVersion) && forkVersion > 0) {
+    history.replaceState(null, '', location.pathname);
+    void startFork({ origin: forkOrigin, id: forkId, version: forkVersion });
+    return;
+  }
   const q = params.get('q')?.replace(/\s+/g, ' ').trim().slice(0, 300);
   if (!q || S.statement) return;
   S.statement = q;
@@ -66,6 +75,87 @@ const S = {
   provenance: '',
   showJson: false,
 };
+
+/**
+ * Forecasting someone else's claim: the question is theirs, exactly as pinned
+ * (statement, date, outcomes, how it's checked); only the numbers are yours.
+ * Published as a fork of their pinned version, so readers can group the two.
+ */
+let fork: (ForkOf & { blyg: string; page: string; claim: ClaimBlock }) | null = null;
+
+async function startFork(ref: ForkOf): Promise<void> {
+  try {
+    const data = await (await fetch('/claims.json', { cache: 'no-cache' })).json();
+    const c = (data.claims as { origin: string; id: string; blyg: string; page: string; block?: ClaimBlock }[]).find((x) => x.origin === ref.origin && x.id === ref.id);
+    if (!c?.block) throw new Error('not found');
+    fork = { ...ref, blyg: c.blyg, page: c.page, claim: c.block };
+    const d = fromClaim(c.block);
+    S.shape = d.shape;
+    S.statement = d.statement;
+    S.resolvesBy = d.resolvesBy;
+    if (d.pick) S.pick = d.pick;
+    if (d.size) S.size = d.size;
+    // Their labels and order; your own numbers.
+    S.options = (d.options ?? []).map((o) => ({ label: o.label }));
+    S.rankOnly = d.pick === 'order' || !!d.rankOnly;
+    S.unit = d.unit ?? '';
+    S.low = '';
+    S.high = '';
+    S.probability = 50;
+  } catch {
+    notice = { kind: 'error', text: "That claim isn't in the list Blyggi reads yet, so it can't be forecast from here. Start your own claim instead." };
+  }
+  render();
+}
+
+function forkClaim(): ClaimBlock {
+  const c: ClaimBlock = JSON.parse(JSON.stringify(fork!.claim));
+  delete (c as Record<string, unknown>).provenance;
+  const round = (n: number) => Math.round(n * 1000) / 1000;
+  if (S.shape === 'binary') c.probability = round(S.probability / 100);
+  if (S.shape === 'choice') {
+    const percents = S.pick !== 'order' && !S.rankOnly;
+    const opts = S.pick === 'one' && percents ? withCatchAll(S.options) : S.options;
+    c.outcomes = opts.map((o) => (percents ? { label: o.label, probability: round((o.percent ?? 0) / 100) } : { label: o.label }));
+  }
+  if (S.shape === 'quantity') {
+    c.range = [num(S.low) as number, num(S.high) as number];
+    c.confidence = round(S.confidence / 100);
+  }
+  return c;
+}
+
+/** The claim as it will be published: yours, or your numbers on their question. */
+function finalClaim(): ClaimBlock {
+  return fork ? forkClaim() : toClaim(draft());
+}
+
+function finalMarkdown(): string {
+  const md = toMarkdown(finalClaim());
+  return fork ? `Forecasting [${fork.blyg}'s claim](${fork.page}).\n\n${md}` : md;
+}
+
+function forkIntro(): string {
+  const f = fork!;
+  const check = f.claim.check ? describeCheck(f.claim.check) : typeof f.claim.criteria === 'string' ? f.claim.criteria : 'The author decides.';
+  return `<section class="forkof"><p class="label">Forecasting ${h(f.blyg)}'s claim</p>
+    <p class="stmt">${h(f.claim.claim)}</p>
+    <p class="muted">By ${h(f.claim.resolves_by)} · Checked by: ${h(check)}</p>
+    <p class="hint">The question stays exactly as they pinned it, so your forecasts can be compared. Yours links to theirs. <button type="button" class="link" data-unfork>Make your own claim instead</button></p></section>`;
+}
+
+/** Fork mode's own inputs beyond "how sure": your range for a number, your order for a ranking. */
+function forkWhat(): string {
+  if (S.shape === 'quantity') {
+    return `<section><h2><span>1</span>Your range</h2><div class="row"><label>Low <input type="number" data-bind="low" value="${h(S.low)}"></label><label>High <input type="number" data-bind="high" value="${h(S.high)}"></label>${S.unit ? `<span class="muted">${h(S.unit)}</span>` : ''}</div></section>`;
+  }
+  if (S.shape === 'choice' && (S.pick === 'order' || S.rankOnly)) {
+    return `<section><h2><span>1</span>Your order</h2><ol class="options">${S.options.map((o, i) => `<li><span>${h(o.label)}</span>
+      <button type="button" class="icon" data-move="${i}:-1" aria-label="Move up"${i === 0 ? ' disabled' : ''}>↑</button>
+      <button type="button" class="icon" data-move="${i}:1" aria-label="Move down"${i === S.options.length - 1 ? ' disabled' : ''}>↓</button></li>`).join('')}</ol></section>`;
+  }
+  return '';
+}
 
 let reading: Reading | null = null;
 let readingState: 'idle' | 'loading' | 'none' | 'ok' = 'idle';
@@ -309,7 +399,9 @@ function stepSure(): string {
     body = `<div class="big"><span id="pct">${S.confidence}%</span> <span class="muted">sure the real number lands in your range</span></div>
       <input type="range" min="50" max="95" step="5" data-bind="confidence" value="${S.confidence}" aria-label="Confidence">`;
   }
-  return `<section><h2><span>5</span>How sure are you?</h2>${body}</section>`;
+  // In a forecast on someone else's claim, this is the first or second step, not the fifth.
+  const n = fork ? (forkWhat() ? 2 : 1) : 5;
+  return `<section><h2><span>${n}</span>How sure are you?</h2>${body}</section>`;
 }
 
 function stepCancel(): string {
@@ -328,8 +420,7 @@ function render(): void {
     ${tabs}
     ${notice ? `<div class="notice ${notice.kind}" role="status">${notice.kind === 'ok' && published ? `${h(notice.text)} <a href="${h(published.url)}" target="_blank" rel="noopener">See it on your blyg ↗</a>` : h(notice.text)}</div>` : ''}
     <main>${view === 'record' ? renderRecord() : view === 'mine' && conn ? renderMine() : `<div class="intro"><h1>Make a forecast anyone can check.</h1><p>Your claim is published and pinned on your own blyg. This page keeps nothing.</p></div>
-    ${stepKind()}
-    ${S.shape ? stepWhat() + stepHow() + stepWhen() + stepSure() + stepCancel() + '<div id="derived"></div>' : ''}`}
+    ${fork ? forkIntro() + forkWhat() + stepSure() + '<div id="derived"></div>' : stepKind() + (S.shape ? stepWhat() + stepHow() + stepWhen() + stepSure() + stepCancel() + '<div id="derived"></div>' : '')}`}
     </main>`;
   if (view === 'new') refresh();
 }
@@ -337,9 +428,9 @@ function render(): void {
 function refresh(): void {
   const el = document.getElementById('derived');
   if (!el || !S.shape) return;
-  const d = draft();
-  const claim = toClaim(d);
-  const list = problems();
+  const claim = finalClaim();
+  const d = fork ? fromClaim(claim) : draft();
+  const list = fork ? mistakes(d, { today }) : problems();
   const stops = list.filter((m) => m.level === 'stop');
   const how = d.check ? resolvesBy(d.check) : null;
   const sure = S.shape === 'binary' ? `<b class="acc">${S.probability}%</b> ${sureWord(S.probability)}`
@@ -360,7 +451,7 @@ function refresh(): void {
       <button type="button" data-copy${stops.length ? ' disabled' : ''}>Copy the block</button>
       <button type="button" class="link" data-json>${S.showJson ? 'Hide' : 'Show'} what gets published</button>
     </div>
-    ${S.showJson ? `<pre>${h(toMarkdown(claim))}</pre>` : ''}</section>`;
+    ${S.showJson ? `<pre>${h(finalMarkdown())}</pre>` : ''}</section>`;
   const sum = document.getElementById('sum');
   if (sum && S.shape === 'choice') {
     const opts = S.options;
@@ -603,6 +694,11 @@ app.addEventListener('click', async (e) => {
     if (view === 'record' && !record && conn && !recordInput) return void showRecord(conn.origin.replace(/^https?:\/\//, ''));
     return render();
   }
+  if (d.unfork !== undefined) {
+    // Their question, as a starting point for a claim of your own (not linked to theirs).
+    fork = null;
+    return render();
+  }
   if (d.rStart) {
     Object.assign(R, { id: d.rStart, choice: '', labels: [], value: '', evidence: '', note: '' });
     return render();
@@ -687,7 +783,7 @@ app.addEventListener('click', async (e) => {
     conn = null;
     render();
   } else if (d.copy !== undefined) {
-    const text = toMarkdown(toClaim(draft()));
+    const text = finalMarkdown();
     try {
       await navigator.clipboard.writeText(text);
       notice = { kind: 'ok', text: 'Copied. Paste it into a new item on any blyg, publish, and pin that version.' };
@@ -701,8 +797,8 @@ app.addEventListener('click', async (e) => {
     busy = true;
     refresh();
     try {
-      published = await publishClaim(conn, toMarkdown(toClaim(draft())));
-      notice = { kind: 'ok', text: 'Published and pinned.' };
+      published = await publishClaim(conn, finalMarkdown(), fork ? { origin: fork.origin, id: fork.id, version: fork.version } : undefined);
+      notice = { kind: 'ok', text: fork ? `Published and pinned, linked to ${fork.blyg}'s claim.` : 'Published and pinned.' };
       mine = null;
     } catch (err) {
       notice = { kind: 'error', text: err instanceof Error ? err.message : String(err) };

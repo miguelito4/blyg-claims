@@ -50,6 +50,7 @@ export interface ItemDocument {
   content_hash: string;
   changelog: ChangelogEntry[];
   stub_of?: unknown;
+  forked_from?: unknown;
   links?: unknown[];
   [extra: string]: unknown;
 }
