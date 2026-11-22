@@ -14,17 +14,18 @@ Browser only, with no network requests of its own. It reads claims from entries'
 
 ## Install
 
-The extension API has no stability promise; this was built and tested against Studio 0.68.0.
+**Claims ships with Blygger Studio** ([blygger-studio#165](https://github.com/blygger/blygger-studio/pull/165), merged 2026-11-21), in the first release after 0.68.0: upgrade, then turn on **Claims** in Settings → extensions. Its code lives in Studio's `extensions/claims/`, and changes to it go to Studio as pull requests.
+
+This directory stays the source of the shared core (`ui/core/`: parser, checks, scoring, source lists), which blyggi.com and the CLI use too.
+
+For a Studio source checkout older than that release, the same code can still be vendored (tested against 0.68.0):
 
 ```sh
-# in your Studio source checkout
 npm run ext:add -- https://github.com/miguelito4/blyg-claims.git <full commit id> --path extension
-npm run build   # or deploy
+npm run build
 ```
 
-Then turn on **Claims** in Settings → extensions. Use a full commit id from this repository's `main`. `ext:add` prints the tree hash; compare it with the one given in the release notes.
-
-A Studio installed from a release download can't carry vendored code (see Studio's `docs/extension-vendoring.md`). Until the extension ships with Studio, [blyggi.com/new](https://blyggi.com/new/) does the same job for any Studio node over OAuth.
+[blyggi.com/new](https://blyggi.com/new/) does the same job for any Studio node over OAuth, no install needed.
 
 ## Layout
 
